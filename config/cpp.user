@@ -1,0 +1,5 @@
+host=localhost
+username=capo_del_personale
+password=verdesrl
+port=3306
+database=verdesrl

@@ -1,0 +1,5 @@
+host=localhost
+username=cliente_rivendita
+password=verdesrl
+port=3306
+database=verdesrl

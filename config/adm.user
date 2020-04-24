@@ -1,0 +1,5 @@
+host=localhost
+username=addetto_diparimento_magazzino
+password=verdesrl
+port=3306
+database=verdesrl

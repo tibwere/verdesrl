@@ -1,0 +1,5 @@
+host=localhost
+username=manager
+password=verdesrl
+port=3306
+database=verdesrl

@@ -1,0 +1,5 @@
+host=localhost
+username=operatore_pacchi
+password=verdesrl
+port=3306
+database=verdesrl
