@@ -26,14 +26,12 @@ typedef struct customer_signup
 } customer_signup_t;
 
 
-static role_t attempt_login(MYSQL *conn, credentials_t *cred, char *identifier); 
-static int attempt_signup(MYSQL *conn, customer_signup_t *cst, char modality);
+static role_t attempt_login(credentials_t *cred, char *identifier); 
+static int attempt_signup(customer_signup_t *cst, char modality);
 static void login_manager(void);
 static void signup_manager(void);
 
-
-static MYSQL *conn;
-
+MYSQL *conn;
 
 int main (void)
 {
@@ -58,21 +56,26 @@ int main (void)
     if (mysql_real_connect (conn, cnf.host, cnf.username, cnf.password, cnf.database, cnf.port, NULL, CLIENT_MULTI_STATEMENTS | CLIENT_MULTI_RESULTS) == NULL) 
         print_error(conn, "Something went wrong, connection was not established.");
 
-    init_screen(true);
+    init_screen(false);
 
     choice = multi_choice("Do you wanna [l]ogin or [s]ignup?", "ls", 2);
 
     if (choice == 'l') 
 		login_manager();
+	else if (choice == 's')
+		signup_manager(); 
 	else
-		signup_manager();     
+	{
+		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+		abort();
+	}    
 
     
     mysql_close(conn);
     exit(EXIT_SUCCESS);
 }
 
-static role_t attempt_login(MYSQL *conn, credentials_t *cred, char *identifier) 
+static role_t attempt_login(credentials_t *cred, char *identifier) 
 {
 	MYSQL_STMT *login_procedure;
 	
@@ -80,7 +83,8 @@ static role_t attempt_login(MYSQL *conn, credentials_t *cred, char *identifier)
 	int role;
     
 
-	if(!setup_prepared_stmt(&login_procedure, "call login(?, ?, ?, ?)", conn)) {
+	if(!setup_prepared_stmt(&login_procedure, "call login(?, ?, ?, ?)", conn)) 
+	{
 		print_stmt_error(login_procedure, "Unable to initialize login statement\n");
 		goto err2;
 	}
@@ -103,12 +107,14 @@ static role_t attempt_login(MYSQL *conn, credentials_t *cred, char *identifier)
 	param[3].buffer = identifier;
 	param[3].buffer_length = CUSTOMER_CODE_MAX_LENGTH * sizeof(char);
 
-	if (mysql_stmt_bind_param(login_procedure, param) != 0) { 
+	if (mysql_stmt_bind_param(login_procedure, param) != 0) 
+	{ 
 		print_stmt_error(login_procedure, "Could not bind parameters for login");
 		goto err;
 	}
 
-	if (mysql_stmt_execute(login_procedure) != 0) {
+	if (mysql_stmt_execute(login_procedure) != 0) 
+	{
 		print_stmt_error(login_procedure, "Could not execute login procedure");
 		goto err;
 	}
@@ -122,12 +128,14 @@ static role_t attempt_login(MYSQL *conn, credentials_t *cred, char *identifier)
 	param[1].buffer = identifier;
 	param[1].buffer_length = CUSTOMER_CODE_MAX_LENGTH * sizeof(char);
 	
-	if(mysql_stmt_bind_result(login_procedure, param)) {
+	if(mysql_stmt_bind_result(login_procedure, param)) 
+	{
 		print_stmt_error(login_procedure, "Could not retrieve output parameter");
 		goto err;
 	}
 	
-	if(mysql_stmt_fetch(login_procedure)) {
+	if(mysql_stmt_fetch(login_procedure)) 
+	{
 		print_stmt_error(login_procedure, "Could not buffer results");
 		goto err;
 	}
@@ -141,7 +149,7 @@ static role_t attempt_login(MYSQL *conn, credentials_t *cred, char *identifier)
 	return ERR;
 }
 
-static int attempt_signup(MYSQL *conn, customer_signup_t *cst, char modality) 
+static int attempt_signup(customer_signup_t *cst, char modality) 
 {
 	MYSQL_STMT *signup_procedure;
 	MYSQL_BIND param[SIGNUP_SP_NO_PARAMS];
@@ -210,13 +218,18 @@ static int attempt_signup(MYSQL *conn, customer_signup_t *cst, char modality)
 		param[7].buffer_length = strlen(cst->referent_last_name);
 	}
 
-	if (mysql_stmt_bind_param(signup_procedure, param) != 0) { 
+	if (mysql_stmt_bind_param(signup_procedure, param) != 0) 
+	{ 
 		print_stmt_error(signup_procedure, "Could not bind parameters for signup");
 		goto err;
 	}
 
-	if (mysql_stmt_execute(signup_procedure) != 0) {
-		print_stmt_error(signup_procedure, "Could not execute signup procedure");
+	if (mysql_stmt_execute(signup_procedure) != 0) 
+	{
+		if (mysql_stmt_errno(signup_procedure) == 1062)
+			fprintf(stderr, "User already exists!\n");
+		else
+			print_stmt_error(signup_procedure, "Could not execute signup procedure");
 		goto err;
 	}
 
@@ -243,12 +256,26 @@ static void login_manager(void)
 	printf("Insert password: ");
 	get_input(CRED_LENGTH, cred.password, true);
 
-	role = attempt_login(conn, &cred, client_identifier);
-	(role == ERR) ? printf("Login failed!\n") : printf("Succesfully logged in\n");
+	role = attempt_login(&cred, client_identifier);
+	
+	switch (role)
+	{
+		case CLP: run_as_customer(cred.username, client_identifier, true); break;
+		case CLR: run_as_customer(cred.username, client_identifier, false); break;
+		case ADM:
+		case OPP:
+		case MNG:
+		case CPP: printf("Sorry not implemented yet!\n"); break;
+		case ERR: printf("Login failed!\n"); break;
+		default: 
+			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+			abort();
+	}
 }
 
 static void signup_manager(void)
 {
+	char password_check[REALSIZE(CRED_LENGTH)];
 	customer_signup_t cst;
 	char modality;
 	int ret;
@@ -257,27 +284,43 @@ static void signup_manager(void)
 
 	modality = multi_choice("Are you a [p]rivate or [r]etailer?", "pr", 2);
 
+	if (modality != 'p' && modality != 'r')
+	{
+		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+		abort();		
+	}
+
 	printf("Insert username: ");
 	get_input(CRED_LENGTH, (cst.credentials).username, false);
 
+retype_pass:
 	printf("Insert password: ");
 	get_input(CRED_LENGTH, (cst.credentials).password, true);
 
+	printf("Confirm password: ");
+	get_input(CRED_LENGTH, password_check, true);
+
+	if (strcmp((cst.credentials).password, password_check) != 0)
+	{
+		printf("Mismatch password, please retry!\n");
+		goto retype_pass;
+	}
+
 	if (modality == 'p')
 	{
-		printf("Insert fiscal code (16 characters): ");
+		printf("Insert fiscal code: ");
 		get_input(16, cst.code, false);
 	}
 	else
 	{
-		printf("Insert VAT code (11 characters): ");
+		printf("Insert VAT code: ");
 		get_input(11, cst.code, false);
 	}
 
-	printf("Insert your name (max 32 characters): ");
+	printf("Insert your name: ");
 	get_input(NAME_LENGTH, cst.name, false);
 
-	printf("Insert your residential address (max 64 characters): ");
+	printf("Insert your residential address: ");
 	get_input(ADDRESS_LENGTH, cst.residential_address, false);
 
 	printf("Insert your billing address (default null): ");
@@ -285,14 +328,14 @@ static void signup_manager(void)
 
 	if (modality == 'r')
 	{
-		printf("Insert referent first name (max 32 characters): ");
+		printf("Insert referent first name: ");
 		get_input(NAME_LENGTH, cst.referent_first_name, false);
 
-		printf("Insert referent last name (max 32 characters): ");
+		printf("Insert referent last name: ");
 		get_input(NAME_LENGTH, cst.referent_last_name, false);		
 	}
 
-	ret = attempt_signup(conn, &cst, modality);
+	ret = attempt_signup(&cst, modality);
 	(ret == 1) ? printf("Signup failed!\n") : printf("Succesfully signed up\n");
 
 }

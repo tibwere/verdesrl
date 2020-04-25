@@ -6,10 +6,12 @@
 
 #include "sizes.h"
 
-#define DBHOST_LENGTH 	64
-#define DBNAME_LENGTH 	64
-#define DBUSER_LENGTH 	64
-#define DBPASS_LENGTH	64
+extern MYSQL *conn;
+
+#define DBHOST_LENGTH 	128
+#define DBNAME_LENGTH 	128
+#define DBUSER_LENGTH 	128
+#define DBPASS_LENGTH	128
 
 typedef struct configuration 
 {
@@ -27,3 +29,4 @@ void init_screen(bool);
 bool setup_prepared_stmt(MYSQL_STMT **stmt, char *statement, MYSQL *conn);
 void print_stmt_error (MYSQL_STMT *stmt, char *message);
 char multi_choice(const char *question, const char *choices, int no_choices);
+void run_as_customer(char *username, char *customer_code, bool is_private);

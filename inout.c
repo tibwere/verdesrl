@@ -94,7 +94,7 @@ size_t get_input(unsigned int length, char *string, bool hide)
 
 char multi_choice(const char *question, const char *choices, int no_choices)
 {
-	char *choices_str = malloc(2 * no_choices * sizeof(char));
+	char choices_str[2 * no_choices * sizeof(char)];
 	int i, j = 0;
 
 	for (i = 0; i < no_choices; ++i) 
@@ -110,14 +110,12 @@ char multi_choice(const char *question, const char *choices, int no_choices)
 
 		char c;
 		get_input(1, &c, false);
+		c = tolower(c);
 
-		for (i = 0; i < no_choices; i++) 
+		for (i = 0; i < no_choices; ++i) 
         {
-			if(c == choices[i])
-            {
-                free(choices_str);
+			if(c == tolower(choices[i]))
 				return c;
-            }
 		}
 
 		printf("Sorry not compliant input, please retry!\n");
