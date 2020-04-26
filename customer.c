@@ -6,6 +6,7 @@
 
 #define PATH_LENGTH 16
 #define CREATE_ORDER_SP_NO_PARAMS 6
+#define FINALIZE_ORDER_SP_NO_PARAMS 2
 #define ORDER_SP_NO_PARAMS_WITH_QUANTITY 4
 #define ORDER_SP_NO_PARAMS_WITHOUT_QUANTITY 3
 #define FINAL_MSG_LENGTH 32
@@ -300,6 +301,73 @@ static void exec_op_on_order(order_ops_type_t type)
     getchar();
 }
 
+static unsigned int attempt_finalize_order(unsigned int order_id)
+{
+	MYSQL_STMT *finalize_order_procedure;	
+	MYSQL_BIND param[FINALIZE_ORDER_SP_NO_PARAMS];
+
+
+	if(!setup_prepared_stmt(&finalize_order_procedure, "call finalizza_ordine(?, ?)", conn)) 
+    {
+		print_stmt_error(finalize_order_procedure, "Unable to initialize finalize order statement\n");
+		goto err_fin_2;
+	}
+
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+	param[1].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[1].buffer = &order_id;
+	param[1].buffer_length = sizeof(unsigned int);
+
+	if (mysql_stmt_bind_param(finalize_order_procedure, param) != 0) 
+	{ 
+		print_stmt_error(finalize_order_procedure, "Could not bind parameters for finalize order");
+		goto err_fin;
+	}
+
+	if (mysql_stmt_execute(finalize_order_procedure) != 0) 
+	{
+		print_stmt_error(finalize_order_procedure, "Could not execute finalize order procedure");
+		goto err_fin;
+	}
+
+	mysql_stmt_close(finalize_order_procedure);
+	return 0;
+
+    err_fin:
+	mysql_stmt_close(finalize_order_procedure);
+    err_fin_2:
+	return 1;    
+}
+
+static void finalize_order(void) 
+{
+    char buffer_for_integer[INT_STR_LENGTH];
+    unsigned int order_id;
+    int ret;
+
+    init_screen(false);
+
+    printf("*** Finalize an order ***");
+    printf("Customer code......: %s\n", curr_customer.code);
+    printf("Insert order id....: ");
+    get_input(INT_STR_LENGTH, buffer_for_integer, false);
+    order_id = strtol(buffer_for_integer, NULL, 10);
+
+    ret = attempt_finalize_order(order_id);
+    if (ret == 0)
+        printf("Order %010u has been finalized\n", order_id);
+    else
+        printf("Operation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
+    getchar();
+}
+
 static void order_management_menu(void)
 {
     char choice;
@@ -313,9 +381,10 @@ static void order_management_menu(void)
         printf("2) Add a species to already opened order\n");
         printf("3) Remove a species from an order not closed yet\n");
         printf("4) Change the number of plants belonging to a species in an order\n");
-        printf("5) Back to main menu\n");
+        printf("5) Finalize an order\n");
+        printf("6) Back to main menu\n");
 
-        choice = multi_choice("Pick an option", "12345", 5);
+        choice = multi_choice("Pick an option", "123456", 6);
 
         switch (choice)
         {
@@ -323,7 +392,8 @@ static void order_management_menu(void)
             case '2': exec_op_on_order(ADD); break;
             case '3': exec_op_on_order(REMOVE); break;
             case '4': exec_op_on_order(MODIFY); break;
-            case '5': return;
+            case '5': finalize_order(); break; 
+            case '6': return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();

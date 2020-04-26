@@ -5,6 +5,8 @@
 #include <mysql.h>
 #include "defines.h"
 
+#define LOGIN_SP_NO_PARAMS 4
+#define SIGNUP_SP_NO_PARAMS 8
 
 typedef enum { CLP, CLR, ADM, OPP, MNG, CPP, ERR } role_t;
 
