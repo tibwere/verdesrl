@@ -6,6 +6,7 @@
 
 #define PATH_LENGTH 16
 #define CREATE_ORDER_SP_NO_PARAMS 6
+#define ADD_SPECIES_TO_ORDER_SP_NO_PARAMS 4
 
 typedef struct customer_info
 {
@@ -38,7 +39,7 @@ static unsigned int attempt_open_order(order_sp_params_t *input)
 		goto err2;
 	}
 
-	memset(param, 0, sizeof(MYSQL_BIND));
+	memset(param, 0, sizeof(param));
 	
 	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
 	param[0].buffer = curr_customer.code;
@@ -119,15 +120,66 @@ static unsigned int attempt_open_order(order_sp_params_t *input)
 	return 0;    
 }
 
+static int attempt_add_species_to_order(unsigned int order_id, unsigned int species_code, unsigned int quantity)
+{
+	MYSQL_STMT *add_species_to_order_procedure;
+	
+	MYSQL_BIND param[ADD_SPECIES_TO_ORDER_SP_NO_PARAMS];
+
+	if(!setup_prepared_stmt(&add_species_to_order_procedure, "call aggiungi_specie_ad_ordine_esistente(?, ?, ?, ?)", conn)) 
+    {
+		print_stmt_error(add_species_to_order_procedure, "Unable to initialize add species to order statement\n");
+		goto err2;
+	}
+
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+	param[1].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
+	param[1].buffer = &species_code;
+	param[1].buffer_length = sizeof(unsigned int);
+
+	param[2].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[2].buffer = &order_id;
+	param[2].buffer_length = sizeof(unsigned int);
+
+    printf("%u\n", quantity);
+	param[3].buffer_type = MYSQL_TYPE_LONG; // IN var_quantita INT
+	param[3].buffer = &quantity;
+	param[3].buffer_length = sizeof(unsigned int);
+
+	if (mysql_stmt_bind_param(add_species_to_order_procedure, param) != 0) 
+	{ 
+		print_stmt_error(add_species_to_order_procedure, "Could not bind parameters for add species to order");
+		goto err;
+	}
+
+	if (mysql_stmt_execute(add_species_to_order_procedure) != 0) 
+	{
+		print_stmt_error(add_species_to_order_procedure, "Could not execute add species to order procedure");
+		goto err;
+	}
+
+	mysql_stmt_close(add_species_to_order_procedure);
+	return 0;
+
+    err:
+	mysql_stmt_close(add_species_to_order_procedure);
+    err2:
+	return 1;    
+}
+
 static void open_order(void)
 {
     order_sp_params_t params;
-    char code_str[INT_STR_LENGTH];
-    char quantity_str[INT_STR_LENGTH];
+    char buffer_for_integer[INT_STR_LENGTH];
     unsigned int order_id;
 
     memset(&params, 0, sizeof(order_sp_params_t));
-    memset(&code_str, 0, INT_STR_LENGTH);
+    memset(&buffer_for_integer, 0, INT_STR_LENGTH);
 
     init_screen(false);
 
@@ -141,12 +193,12 @@ static void open_order(void)
     get_input(CONTACT_LENGTH, params.contact, false);
 
     printf("Insert species code..................................: ");
-    get_input(INT_STR_LENGTH, code_str, false);
-    params.species = strtol(code_str, NULL, 10);
+    get_input(INT_STR_LENGTH, buffer_for_integer, false);
+    params.species = strtol(buffer_for_integer, NULL, 10);
 
     printf("Insert relative quantity.............................: ");
-    get_input(INT_STR_LENGTH, quantity_str, false);
-    params.quantity = strtol(quantity_str, NULL, 10);
+    get_input(INT_STR_LENGTH, buffer_for_integer, false);
+    params.quantity = strtol(buffer_for_integer, NULL, 10);
 
     order_id = attempt_open_order(&params);
     if (order_id > 0)
@@ -154,7 +206,44 @@ static void open_order(void)
     else
         printf("No order has opened\n");
         
-    printf("Press any key to get back to menu ...\n");
+    printf("Press enter key to get back to menu ...\n");
+    getchar();
+}
+
+static void add_species_to_order(void)
+{
+    char buffer_for_integer[INT_STR_LENGTH];
+    unsigned int order_id;
+    unsigned int species_code;
+    unsigned int quantity;
+    int ret;
+
+    memset(&buffer_for_integer, 0, INT_STR_LENGTH);
+
+    init_screen(false);
+
+    printf("*** Add a species to already opened order ***\n");
+    printf("Customer code......: %s\n", curr_customer.code);
+    
+    printf("Insert order id.........: ");
+    get_input(INT_STR_LENGTH, buffer_for_integer, false);
+    order_id = strtol(buffer_for_integer, NULL, 10);
+
+    printf("Insert species code.....: ");
+    get_input(INT_STR_LENGTH, buffer_for_integer, false);
+    species_code = strtol(buffer_for_integer, NULL, 10);
+
+    printf("Insert relative quantity: ");
+    get_input(INT_STR_LENGTH, buffer_for_integer, false);
+    quantity = strtol(buffer_for_integer, NULL, 10);
+
+    ret = attempt_add_species_to_order(order_id, species_code, quantity);
+    if (ret == 0)
+        printf("Species %u succesfully added to your order (ID %010u)\n", species_code, order_id);
+    else
+        printf("Operation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
     getchar();
 }
 
@@ -169,14 +258,16 @@ static void order_management_menu(void)
 
         printf("*** [ORDER MANAGEMENT] What do you wanna do? ***\n\n");
         printf("1) Open a new order\n");
-        printf("2) Back to main menu\n");
+        printf("2) Add a species to already opened order\n");
+        printf("3) Back to main menu\n");
 
         choice = multi_choice("Pick an option", "12", 2);
 
         switch (choice)
         {
             case '1': open_order(); break;
-            case '2': return;
+            case '2': add_species_to_order(); break;
+            case '3': return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();
