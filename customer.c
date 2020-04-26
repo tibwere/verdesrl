@@ -6,8 +6,12 @@
 
 #define PATH_LENGTH 16
 #define CREATE_ORDER_SP_NO_PARAMS 6
-#define ADD_SPECIES_TO_ORDER_SP_NO_PARAMS 4
-#define REMOVE_SPECIES_FROM_ORDER_SP_NO_PARAMS 4
+#define ORDER_SP_NO_PARAMS_WITH_QUANTITY 4
+#define ORDER_SP_NO_PARAMS_WITHOUT_QUANTITY 3
+#define FINAL_MSG_LENGTH 32
+#define PROC_STR_LENGTH 64
+
+typedef enum order_ops_type {ADD, REMOVE, MODIFY} order_ops_type_t;
 
 typedef struct customer_info
 {
@@ -37,7 +41,7 @@ static unsigned int attempt_open_order(order_sp_params_t *input)
 	if(!setup_prepared_stmt(&create_order_procedure, "call crea_ordine(?, ?, ?, ?, ?, ?)", conn)) 
     {
 		print_stmt_error(create_order_procedure, "Unable to initialize create order statement\n");
-		goto err2;
+		goto err_open_2;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -87,13 +91,13 @@ static unsigned int attempt_open_order(order_sp_params_t *input)
 	if (mysql_stmt_bind_param(create_order_procedure, param) != 0) 
 	{ 
 		print_stmt_error(create_order_procedure, "Could not bind parameters for create order");
-		goto err;
+		goto err_open;
 	}
 
 	if (mysql_stmt_execute(create_order_procedure) != 0) 
 	{
 		print_stmt_error(create_order_procedure, "Could not execute create order procedure");
-		goto err;
+		goto err_open;
 	}
 
 	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_id INT
@@ -103,121 +107,22 @@ static unsigned int attempt_open_order(order_sp_params_t *input)
 	if(mysql_stmt_bind_result(create_order_procedure, param)) 
 	{
 		print_stmt_error(create_order_procedure, "Could not retrieve output parameter");
-		goto err;
+		goto err_open;
 	}
 	
 	if(mysql_stmt_fetch(create_order_procedure)) 
 	{
 		print_stmt_error(create_order_procedure, "Could not buffer results");
-		goto err;
+		goto err_open;
 	}
 
 	mysql_stmt_close(create_order_procedure);
 	return id;
 
-    err:
+    err_open:
 	mysql_stmt_close(create_order_procedure);
-    err2:
+    err_open_2:
 	return 0;    
-}
-
-static int attempt_add_species_to_order(unsigned int order_id, unsigned int species_code, unsigned int quantity)
-{
-	MYSQL_STMT *add_species_to_order_procedure;
-	
-	MYSQL_BIND param[ADD_SPECIES_TO_ORDER_SP_NO_PARAMS];
-
-	if(!setup_prepared_stmt(&add_species_to_order_procedure, "call aggiungi_specie_ad_ordine_esistente(?, ?, ?, ?)", conn)) 
-    {
-		print_stmt_error(add_species_to_order_procedure, "Unable to initialize add species to order statement\n");
-		goto err2;
-	}
-
-	memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
-	param[0].buffer = curr_customer.code;
-	param[0].buffer_length = strlen(curr_customer.code);
-
-	param[1].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
-	param[1].buffer = &species_code;
-	param[1].buffer_length = sizeof(unsigned int);
-
-	param[2].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
-	param[2].buffer = &order_id;
-	param[2].buffer_length = sizeof(unsigned int);
-
-	param[3].buffer_type = MYSQL_TYPE_LONG; // IN var_quantita INT
-	param[3].buffer = &quantity;
-	param[3].buffer_length = sizeof(unsigned int);
-
-	if (mysql_stmt_bind_param(add_species_to_order_procedure, param) != 0) 
-	{ 
-		print_stmt_error(add_species_to_order_procedure, "Could not bind parameters for add species to order");
-		goto err;
-	}
-
-	if (mysql_stmt_execute(add_species_to_order_procedure) != 0) 
-	{
-		print_stmt_error(add_species_to_order_procedure, "Could not execute add species to order procedure");
-		goto err;
-	}
-
-	mysql_stmt_close(add_species_to_order_procedure);
-	return 0;
-
-    err:
-	mysql_stmt_close(add_species_to_order_procedure);
-    err2:
-	return 1;    
-}
-
-static int attempt_remove_species_from_order(unsigned int order_id, unsigned int species_code)
-{
-	MYSQL_STMT *remove_species_from_order_procedure;
-	
-	MYSQL_BIND param[REMOVE_SPECIES_FROM_ORDER_SP_NO_PARAMS];
-
-	if(!setup_prepared_stmt(&remove_species_from_order_procedure, "call rimuovi_specie_da_ordine(?, ?, ?)", conn)) 
-    {
-		print_stmt_error(remove_species_from_order_procedure, "Unable to initialize remove species to order statement\n");
-		goto err2;
-	}
-
-	memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
-	param[0].buffer = curr_customer.code;
-	param[0].buffer_length = strlen(curr_customer.code);
-
-	param[1].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
-	param[1].buffer = &species_code;
-	param[1].buffer_length = sizeof(unsigned int);
-
-	param[2].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
-	param[2].buffer = &order_id;
-	param[2].buffer_length = sizeof(unsigned int);
-
-
-	if (mysql_stmt_bind_param(remove_species_from_order_procedure, param) != 0) 
-	{ 
-		print_stmt_error(remove_species_from_order_procedure, "Could not bind parameters for remove species from order");
-		goto err;
-	}
-
-	if (mysql_stmt_execute(remove_species_from_order_procedure) != 0) 
-	{
-		print_stmt_error(remove_species_from_order_procedure, "Could not execute remove species from order procedure");
-		goto err;
-	}
-
-	mysql_stmt_close(remove_species_from_order_procedure);
-	return 0;
-
-    err:
-	mysql_stmt_close(remove_species_from_order_procedure);
-    err2:
-	return 1;    
 }
 
 static void open_order(void)
@@ -258,19 +163,97 @@ static void open_order(void)
     getchar();
 }
 
-static void add_species_to_order(void)
+static int attempt_to_exec_op_on_order(order_ops_type_t type, unsigned int order_id, unsigned int species_code, unsigned int quantity)
+{
+    char sp_str[PROC_STR_LENGTH];
+	MYSQL_STMT *order_procedure;
+	MYSQL_BIND param[(type == REMOVE) ? ORDER_SP_NO_PARAMS_WITHOUT_QUANTITY : ORDER_SP_NO_PARAMS_WITH_QUANTITY];
+
+    memset(sp_str, 0, sizeof(sp_str));
+
+    switch (type)
+    {
+        case ADD: snprintf(sp_str, PROC_STR_LENGTH, "call aggiungi_specie_ad_ordine_esistente(?, ?, ?, ?)"); break;
+        case REMOVE: snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_specie_da_ordine(?, ?, ?)"); break;
+        case MODIFY: snprintf(sp_str, PROC_STR_LENGTH, "call modifica_ordine(?, ?, ?, ?)"); break; 
+        default:
+			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+			abort();
+    }
+
+	if(!setup_prepared_stmt(&order_procedure, sp_str, conn)) 
+    {
+		print_stmt_error(order_procedure, "Unable to initialize selected operation on order statement\n");
+		goto err_op_2;
+	}
+
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+	param[1].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
+	param[1].buffer = &species_code;
+	param[1].buffer_length = sizeof(unsigned int);
+
+	param[2].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[2].buffer = &order_id;
+	param[2].buffer_length = sizeof(unsigned int);
+
+    if (type != REMOVE)
+    {
+        param[3].buffer_type = MYSQL_TYPE_LONG; // IN var_quantita INT
+        param[3].buffer = &quantity;
+        param[3].buffer_length = sizeof(unsigned int);
+    }
+
+	if (mysql_stmt_bind_param(order_procedure, param) != 0) 
+	{ 
+		print_stmt_error(order_procedure, "Could not bind parameters for selected operation on order");
+		goto err_op;
+	}
+
+	if (mysql_stmt_execute(order_procedure) != 0) 
+	{
+		print_stmt_error(order_procedure, "Could not execute selected operation on order procedure");
+		goto err_op;
+    }
+
+	mysql_stmt_close(order_procedure);
+	return 0;
+
+    err_op:
+	mysql_stmt_close(order_procedure);
+    err_op_2:
+	return 1;    
+}
+
+static void exec_op_on_order(order_ops_type_t type)
 {
     char buffer_for_integer[INT_STR_LENGTH];
+    char final_message[FINAL_MSG_LENGTH];
     unsigned int order_id;
     unsigned int species_code;
     unsigned int quantity;
     int ret;
 
-    memset(&buffer_for_integer, 0, INT_STR_LENGTH);
+
+    memset(buffer_for_integer, 0, INT_STR_LENGTH);
+    memset(final_message, 0, FINAL_MSG_LENGTH);
 
     init_screen(false);
+    
+    switch (type)
+    {
+        case ADD: printf("*** Add a species to already opened order ***\n"); break;
+        case REMOVE: printf("*** Remove a species from an order not closed yet ***\n"); break;
+        case MODIFY: printf("*** Change the number of plants belonging to a species in an order ***\n"); break;
+        default:
+			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+			abort();
+    }
 
-    printf("*** Add a species to already opened order ***\n");
     printf("Customer code......: %s\n", curr_customer.code);
     
     printf("Insert order id.........: ");
@@ -281,47 +264,37 @@ static void add_species_to_order(void)
     get_input(INT_STR_LENGTH, buffer_for_integer, false);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert relative quantity: ");
-    get_input(INT_STR_LENGTH, buffer_for_integer, false);
-    quantity = strtol(buffer_for_integer, NULL, 10);
+    if (type != REMOVE)
+    {
+        printf("Insert relative quantity: ");
+        get_input(INT_STR_LENGTH, buffer_for_integer, false);
+        quantity = strtol(buffer_for_integer, NULL, 10);
+    }
 
-    ret = attempt_add_species_to_order(order_id, species_code, quantity);
+    switch (type)
+    {
+        case ADD: 
+            ret = attempt_to_exec_op_on_order(ADD, order_id, species_code, quantity); 
+            snprintf(final_message, FINAL_MSG_LENGTH, "added to");
+            break;
+        case REMOVE: 
+            ret = attempt_to_exec_op_on_order(REMOVE, order_id, species_code, 0); 
+            snprintf(final_message, FINAL_MSG_LENGTH, "removed from");
+            break;
+        case MODIFY:
+            ret = attempt_to_exec_op_on_order(MODIFY, order_id, species_code, quantity);
+            snprintf(final_message, FINAL_MSG_LENGTH, "update in");
+            break;
+        default:
+			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+			abort();  
+    }
+
     if (ret == 0)
-        printf("Species %u succesfully added to your order (ID %010u)\n", species_code, order_id);
+        printf("Species %u succesfully %s your order (ID %010u)\n", species_code, final_message, order_id);
     else
         printf("Operation failed\n");
-        
-    printf("Press enter key to get back to menu ...\n");
-    getchar();
-}
-
-static void remove_species_from_order(void)
-{
-    char buffer_for_integer[INT_STR_LENGTH];
-    unsigned int order_id;
-    unsigned int species_code;
-    int ret;
-
-    memset(&buffer_for_integer, 0, INT_STR_LENGTH);
-
-    init_screen(false);
-
-    printf("*** Remove a species from an order not closed yet ***\n");
-    printf("Customer code......: %s\n", curr_customer.code);
     
-    printf("Insert order id.........: ");
-    get_input(INT_STR_LENGTH, buffer_for_integer, false);
-    order_id = strtol(buffer_for_integer, NULL, 10);
-
-    printf("Insert species code.....: ");
-    get_input(INT_STR_LENGTH, buffer_for_integer, false);
-    species_code = strtol(buffer_for_integer, NULL, 10);
-
-    ret = attempt_remove_species_from_order(order_id, species_code);
-    if (ret == 0)
-        printf("Species %u succesfully removed from your order (ID %010u)\n", species_code, order_id);
-    else
-        printf("Operation failed\n");
         
     printf("Press enter key to get back to menu ...\n");
     getchar();
@@ -339,16 +312,18 @@ static void order_management_menu(void)
         printf("1) Open a new order\n");
         printf("2) Add a species to already opened order\n");
         printf("3) Remove a species from an order not closed yet\n");
-        printf("4) Back to main menu\n");
+        printf("4) Change the number of plants belonging to a species in an order\n");
+        printf("5) Back to main menu\n");
 
-        choice = multi_choice("Pick an option", "1234", 4);
+        choice = multi_choice("Pick an option", "12345", 5);
 
         switch (choice)
         {
             case '1': open_order(); break;
-            case '2': add_species_to_order(); break;
-            case '3': remove_species_from_order(); break;
-            case '4': return;
+            case '2': exec_op_on_order(ADD); break;
+            case '3': exec_op_on_order(REMOVE); break;
+            case '4': exec_op_on_order(MODIFY); break;
+            case '5': return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();
