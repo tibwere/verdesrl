@@ -254,9 +254,9 @@ static void login_manager(void)
     memset(&cred, 0, sizeof(credentials_t));
 
 	printf("Insert username: ");
-	get_input(CRED_LENGTH, cred.username, false);
+	get_input(CRED_LENGTH, cred.username, false, true);
 	printf("Insert password: ");
-	get_input(CRED_LENGTH, cred.password, true);
+	get_input(CRED_LENGTH, cred.password, true, true);
 
 	role = attempt_login(&cred, client_identifier);
 	
@@ -293,14 +293,14 @@ static void signup_manager(void)
 	}
 
 	printf("Insert username: ");
-	get_input(CRED_LENGTH, (cst.credentials).username, false);
+	get_input(CRED_LENGTH, (cst.credentials).username, false, true);
 
 retype_pass:
 	printf("Insert password: ");
-	get_input(CRED_LENGTH, (cst.credentials).password, true);
+	get_input(CRED_LENGTH, (cst.credentials).password, true, true);
 
 	printf("Confirm password: ");
-	get_input(CRED_LENGTH, password_check, true);
+	get_input(CRED_LENGTH, password_check, true, true);
 
 	if (strcmp((cst.credentials).password, password_check) != 0)
 	{
@@ -311,30 +311,30 @@ retype_pass:
 	if (modality == 'p')
 	{
 		printf("Insert fiscal code: ");
-		get_input(16, cst.code, false);
+		get_input(16, cst.code, false, true);
 	}
 	else
 	{
 		printf("Insert VAT code: ");
-		get_input(11, cst.code, false);
+		get_input(11, cst.code, false, true);
 	}
 
 	printf("Insert your name: ");
-	get_input(NAME_LENGTH, cst.name, false);
+	get_input(NAME_LENGTH, cst.name, false, true);
 
 	printf("Insert your residential address: ");
-	get_input(ADDRESS_LENGTH, cst.residential_address, false);
+	get_input(ADDRESS_LENGTH, cst.residential_address, false, true);
 
 	printf("Insert your billing address (default null): ");
-	get_input(ADDRESS_LENGTH, cst.billing_address, false);
+	get_input(ADDRESS_LENGTH, cst.billing_address, false, false);
 
 	if (modality == 'r')
 	{
 		printf("Insert referent first name: ");
-		get_input(NAME_LENGTH, cst.referent_first_name, false);
+		get_input(NAME_LENGTH, cst.referent_first_name, false, true);
 
 		printf("Insert referent last name: ");
-		get_input(NAME_LENGTH, cst.referent_last_name, false);		
+		get_input(NAME_LENGTH, cst.referent_last_name, false, true);		
 	}
 
 	ret = attempt_signup(&cst, modality);

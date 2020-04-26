@@ -24,7 +24,7 @@ typedef struct configuration
 
 int parse_config(const char *path, config_t *conf, const char *delimiter); 
 void print_error(MYSQL *conn, char *message);
-size_t get_input(unsigned int length, char *string, bool hide);
+size_t get_input(unsigned int length, char *string, bool hide, bool not_null);
 void init_screen(bool);
 bool setup_prepared_stmt(MYSQL_STMT **stmt, char *statement, MYSQL *conn);
 void print_stmt_error (MYSQL_STMT *stmt, char *message);

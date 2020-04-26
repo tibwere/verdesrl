@@ -13,7 +13,7 @@ static volatile sig_atomic_t signo;
 
 static void handler(int s) { signo = s; }
 
-size_t get_input(unsigned int length, char *string, bool hide)
+size_t get_input(unsigned int length, char *string, bool hide, bool not_null)
 {
     char c;
     unsigned int i;
@@ -50,17 +50,22 @@ size_t get_input(unsigned int length, char *string, bool hide)
 		}
     }
 
-    for (i = 0; i < length; ++i) 
-    {
-        (void) fread(&c, sizeof(char), 1, stdin);
-        if (c == '\n') 
-        {
-            string[i] = '\0';
-            break;
-        } 
-        else
-            string[i] = c;    
-    }
+read_loop:
+	for (i = 0; i < length; ++i) 
+	{
+		(void) fread(&c, sizeof(char), 1, stdin);
+		if (c == '\n') 
+		{
+			string[i] = '\0';
+			break;
+		} 
+		else
+			string[i] = c;    
+	}
+
+	if (not_null && i == 0)
+		goto read_loop;
+
 
     if (i == length - 1)
         string[i] = '\0';
@@ -109,7 +114,7 @@ char multi_choice(const char *question, const char *choices, int no_choices)
 		printf("%s [%s]: ", question, choices_str);
 
 		char c;
-		get_input(1, &c, false);
+		get_input(1, &c, false, true);
 		c = tolower(c);
 
 		for (i = 0; i < no_choices; ++i) 
