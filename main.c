@@ -88,7 +88,7 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 	if(!setup_prepared_stmt(&login_procedure, "call login(?, ?, ?, ?)", conn)) 
 	{
 		print_stmt_error(login_procedure, "Unable to initialize login statement\n");
-		goto err2;
+		goto err_log_2;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -112,13 +112,13 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 	if (mysql_stmt_bind_param(login_procedure, param) != 0) 
 	{ 
 		print_stmt_error(login_procedure, "Could not bind parameters for login");
-		goto err;
+		goto err_log;
 	}
 
 	if (mysql_stmt_execute(login_procedure) != 0) 
 	{
 		print_stmt_error(login_procedure, "Could not execute login procedure");
-		goto err;
+		goto err_log;
 	}
 
 
@@ -133,21 +133,21 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 	if(mysql_stmt_bind_result(login_procedure, param)) 
 	{
 		print_stmt_error(login_procedure, "Could not retrieve output parameter");
-		goto err;
+		goto err_log;
 	}
 	
 	if(mysql_stmt_fetch(login_procedure)) 
 	{
 		print_stmt_error(login_procedure, "Could not buffer results");
-		goto err;
+		goto err_log;
 	}
 
 	mysql_stmt_close(login_procedure);
 	return role;
 
-    err:
+    err_log:
 	mysql_stmt_close(login_procedure);
-    err2:
+    err_log_2:
 	return ERR;
 }
 
@@ -161,7 +161,7 @@ static int attempt_signup(customer_signup_t *cst, char modality)
 		if(!setup_prepared_stmt(&signup_procedure, "call registra_privato(?, ?, ?, ?, ?, ?)", conn)) 
 		{
 			print_stmt_error(signup_procedure, "Unable to initialize signup statement\n");
-			goto err2;
+			goto err_sig_2;
 		}
 	}
 	else
@@ -169,7 +169,7 @@ static int attempt_signup(customer_signup_t *cst, char modality)
 		if(!setup_prepared_stmt(&signup_procedure, "call registra_rivendita(?, ?, ?, ?, ?, ?, ?, ?)", conn)) 
 		{
 			print_stmt_error(signup_procedure, "Unable to initialize signup statement\n");
-			goto err2;
+			goto err_sig_2;
 		}
 	}
 
@@ -223,7 +223,7 @@ static int attempt_signup(customer_signup_t *cst, char modality)
 	if (mysql_stmt_bind_param(signup_procedure, param) != 0) 
 	{ 
 		print_stmt_error(signup_procedure, "Could not bind parameters for signup");
-		goto err;
+		goto err_sig;
 	}
 
 	if (mysql_stmt_execute(signup_procedure) != 0) 
@@ -232,15 +232,15 @@ static int attempt_signup(customer_signup_t *cst, char modality)
 			fprintf(stderr, "User already exists!\n");
 		else
 			print_stmt_error(signup_procedure, "Could not execute signup procedure");
-		goto err;
+		goto err_sig;
 	}
 
 	mysql_stmt_close(signup_procedure);
 	return 0;
 
-    err:
+    err_sig:
 	mysql_stmt_close(signup_procedure);
-    err2:
+    err_sig_2:
 	return 1;
 }
 
