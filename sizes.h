@@ -6,6 +6,7 @@
 #define ADDRESS_LENGTH 64
 #define CONTACT_LENGTH 256
 #define INT_STR_LENGTH 10
-
+#define SPEC_NAME_LENGTH 64
+#define TYPE_MAX_LENGTH 16
 
 #define REALSIZE(x) (x) + 1
