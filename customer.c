@@ -568,6 +568,95 @@ static void update_addr(bool is_res)
     getchar();
 }
 
+static unsigned int attempt_to_modify_contact_list(char *contact, bool is_customer, bool to_delete)
+{
+    char sp_str[PROC_STR_LENGTH];
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[MODIFY_CONTACT_LIST_SP_NO_PARAMS];
+
+    memset(sp_str, 0, sizeof(sp_str));
+
+    if (to_delete)
+    {
+        if (is_customer)
+            snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_contatto_cliente(?, ?)");
+        else   
+            snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_contatto_referente(?, ?)");
+    }
+    else
+    {
+        if (is_customer)
+            snprintf(sp_str, PROC_STR_LENGTH, "call modifica_contatto_preferito_cliente(?, ?)");
+        else   
+            snprintf(sp_str, PROC_STR_LENGTH, "call modifica_contatto_preferito_referente(?, ?)");
+    }
+
+	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 1;
+	}
+
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+    param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_contatto VARCHAR(256)
+    param[1].buffer = contact;
+    param[1].buffer_length = strlen(contact);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+		CLOSEANDRET(1);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+        if (to_delete && (mysql_stmt_errno(stmt) == 1451))
+			fprintf(stderr, "Cannot remove contact because it is associated to an order!\n");
+        else if (!to_delete && (mysql_stmt_errno(stmt) == 1452))
+            fprintf(stderr, "Cannot set this contact as favourite one because you don't own it!\n");
+		else
+			print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(1);
+	}
+    
+	mysql_stmt_close(stmt);
+	return 0;  
+}
+
+static void modify_contact_list(bool is_customer, bool to_delete)
+{
+    char contact[REALSIZE(CONTACT_LENGTH)];
+    int ret;
+
+    init_screen(false);
+    
+    if (to_delete)
+        printf("*** Remove a contact from your %s list ***\n", (is_customer) ? "" : "referent");
+    else
+        printf("*** Change %s favourite contact %s ***\n", 
+            (is_customer) ? "your" : "",
+            (is_customer) ? "" : "of your referent");
+ 
+    printf("%s code.: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
+    printf("Insert contact: ");
+    get_input(CONTACT_LENGTH, contact, false, true);
+
+    ret = attempt_to_modify_contact_list(contact, is_customer, to_delete);
+
+    if (ret == 0)
+        printf("Contact succesfully %s\n", (to_delete) ? "removed" : "changed");
+    else
+        printf("Operation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
+    getchar();
+}
+
 static unsigned int attempt_add_contact(char *contact, char *type, bool is_customer)
 {
     char sp_str[PROC_STR_LENGTH];
@@ -648,7 +737,18 @@ static void add_contact(bool is_customer, bool show_prompt)
     ret = attempt_add_contact(contact, type, is_customer);
 
     if (ret == 0)
+    {
         printf("Contact succesfully added\n");
+        choice = multi_choice("Do you wanna set this as your favourite contact?", "yn", 2);
+        if (choice == 'y')
+        {
+            ret = attempt_to_modify_contact_list(contact, is_customer, false);
+            if (ret == 0)
+                printf("Contact succesfully changed\n");
+            else
+                printf("Operation failed\n");
+        }
+    }
     else
         printf("Operation failed\n");
         
@@ -657,94 +757,6 @@ static void add_contact(bool is_customer, bool show_prompt)
         printf("Press enter key to get back to menu ...\n");
         getchar();
     }
-}
-
-static unsigned int attempt_to_modify_contact_list(char *contact, bool is_customer, bool to_delete)
-{
-    char sp_str[PROC_STR_LENGTH];
-	MYSQL_STMT *stmt;	
-	MYSQL_BIND param[MODIFY_CONTACT_LIST_SP_NO_PARAMS];
-
-    memset(sp_str, 0, sizeof(sp_str));
-
-    if (to_delete)
-    {
-        if (is_customer)
-            snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_contatto_cliente(?, ?)");
-        else   
-            snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_contatto_referente(?, ?)");
-    }
-    else
-    {
-        if (is_customer)
-            snprintf(sp_str, PROC_STR_LENGTH, "call modifica_contatto_preferito_cliente(?, ?)");
-        else   
-            snprintf(sp_str, PROC_STR_LENGTH, "call modifica_contatto_preferito_referente(?, ?)");
-    }
-
-	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
-    {
-		print_stmt_error(stmt, "Unable to initialize the statement\n");
-		return 1;
-	}
-
-	memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
-	param[0].buffer = curr_customer.code;
-	param[0].buffer_length = strlen(curr_customer.code);
-
-    param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_contatto VARCHAR(256)
-    param[1].buffer = contact;
-    param[1].buffer_length = strlen(contact);
-
-	if (mysql_stmt_bind_param(stmt, param) != 0) 
-	{ 
-		print_stmt_error(stmt, "Could not bind parameters for the statement");
-		CLOSEANDRET(1);
-	}
-
-	if (mysql_stmt_execute(stmt) != 0) 
-	{
-        if (to_delete && (mysql_stmt_errno(stmt) == 1451))
-			fprintf(stderr, "Cannot remove contact because it is associated to an order!\n");
-		else
-			print_stmt_error(stmt, "Could not execute the statement");
-		CLOSEANDRET(1);
-	}
-    
-	mysql_stmt_close(stmt);
-	return 0;  
-}
-
-static void modify_contact_list(bool is_customer, bool to_delete)
-{
-    char contact[REALSIZE(CONTACT_LENGTH)];
-    int ret;
-
-    init_screen(false);
-    
-    if (to_delete)
-        printf("*** Remove a contact from your %s list ***\n", (is_customer) ? "" : "referent");
-    else
-        printf("*** Change %s favourite contact %s ***\n", 
-            (is_customer) ? "your" : "",
-            (is_customer) ? "" : "of your referent");
- 
-    printf("%s code.....: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
-
-    printf("Insert new contact: ");
-    get_input(CONTACT_LENGTH, contact, false, true);
-
-    ret = attempt_to_modify_contact_list(contact, is_customer, to_delete);
-
-    if (ret == 0)
-        printf("Contact succesfully %s\n", (to_delete) ? "removed" : "changed");
-    else
-        printf("Operation failed\n");
-        
-    printf("Press enter key to get back to menu ...\n");
-    getchar();
 }
 
 static void order_management_menu(void)
