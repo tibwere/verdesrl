@@ -13,6 +13,10 @@ extern MYSQL *conn;
 #define DBUSER_LENGTH 	128
 #define DBPASS_LENGTH	128
 
+#define CLOSEANDRET(x) \
+            mysql_stmt_close(stmt); \
+            return (x);
+
 typedef struct configuration 
 {
 	char host[DBHOST_LENGTH];
@@ -29,5 +33,5 @@ void init_screen(bool);
 bool setup_prepared_stmt(MYSQL_STMT **stmt, char *statement, MYSQL *conn);
 void print_stmt_error (MYSQL_STMT *stmt, char *message);
 char multi_choice(const char *question, const char *choices, int no_choices);
-void run_as_customer(char *username, char *customer_code, bool is_private);
+void run_as_customer(char *username, char *customer_code, bool is_private, bool first_access);
 bool dump_result_set(MYSQL_STMT *stmt, char *title);

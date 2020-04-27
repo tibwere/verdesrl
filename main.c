@@ -29,9 +29,10 @@ typedef struct customer_signup
 
 
 static role_t attempt_login(credentials_t *cred, char *identifier); 
-static int attempt_signup(customer_signup_t *cst, char modality);
-static void login_manager(void);
-static void signup_manager(void);
+static int attempt_signup(customer_signup_t *cst, bool is_private);
+static bool login_manager(void);
+static bool signup_manager(void);
+static char *strupper(char *str);
 
 MYSQL *conn;
 
@@ -56,22 +57,33 @@ int main (void)
     }
 
     if (mysql_real_connect (conn, cnf.host, cnf.username, cnf.password, cnf.database, cnf.port, NULL, CLIENT_MULTI_STATEMENTS | CLIENT_MULTI_RESULTS) == NULL) 
-        print_error(conn, "Something went wrong, connection was not established.");
-
-    init_screen(false);
-
-    choice = multi_choice("Do you wanna [l]ogin or [s]ignup?", "ls", 2);
-
-    if (choice == 'l') 
-		login_manager();
-	else if (choice == 's')
-		signup_manager(); 
-	else
 	{
-		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
-		abort();
-	}    
+		print_error(conn, "Something went wrong, connection was not established.");
+		mysql_close (conn);
+		exit(EXIT_FAILURE);
+	}
 
+	while (true)
+	{
+		init_screen(false);
+    	choice = multi_choice("Do you wanna [l]ogin or [s]ignup?", "ls", 2);
+
+		if (choice == 'l') 
+		{
+			if (login_manager())
+				break;
+		}
+		else if (choice == 's')
+		{
+			if (signup_manager())
+				break;
+		} 
+		else
+		{
+			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+			abort();
+		} 
+	}   
     
     mysql_close(conn);
     exit(EXIT_SUCCESS);
@@ -79,16 +91,16 @@ int main (void)
 
 static role_t attempt_login(credentials_t *cred, char *identifier) 
 {
-	MYSQL_STMT *login_procedure;
+	MYSQL_STMT *stmt;
 	
 	MYSQL_BIND param[LOGIN_SP_NO_PARAMS];
 	int role;
     
 
-	if(!setup_prepared_stmt(&login_procedure, "call login(?, ?, ?, ?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call login(?, ?, ?, ?)", conn)) 
 	{
-		print_stmt_error(login_procedure, "Unable to initialize login statement\n");
-		goto err_log_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return ERR;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -109,16 +121,16 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 	param[3].buffer = identifier;
 	param[3].buffer_length = CUSTOMER_CODE_MAX_LENGTH * sizeof(char);
 
-	if (mysql_stmt_bind_param(login_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(login_procedure, "Could not bind parameters for login");
-		goto err_log;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+		CLOSEANDRET(ERR);
 	}
 
-	if (mysql_stmt_execute(login_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(login_procedure, "Could not execute login procedure");
-		goto err_log;
+		print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(ERR);
 	}
 
 
@@ -130,46 +142,41 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 	param[1].buffer = identifier;
 	param[1].buffer_length = CUSTOMER_CODE_MAX_LENGTH * sizeof(char);
 	
-	if(mysql_stmt_bind_result(login_procedure, param)) 
+	if(mysql_stmt_bind_result(stmt, param)) 
 	{
-		print_stmt_error(login_procedure, "Could not retrieve output parameter");
-		goto err_log;
+		print_stmt_error(stmt, "Could not retrieve output parameter");
+		CLOSEANDRET(ERR);
 	}
 	
-	if(mysql_stmt_fetch(login_procedure)) 
+	if(mysql_stmt_fetch(stmt)) 
 	{
-		print_stmt_error(login_procedure, "Could not buffer results");
-		goto err_log;
+		print_stmt_error(stmt, "Could not buffer results");
+		CLOSEANDRET(ERR);
 	}
 
-	mysql_stmt_close(login_procedure);
+	mysql_stmt_close(stmt);
 	return role;
-
-    err_log:
-	mysql_stmt_close(login_procedure);
-    err_log_2:
-	return ERR;
 }
 
-static int attempt_signup(customer_signup_t *cst, char modality) 
+static int attempt_signup(customer_signup_t *cst, bool is_private) 
 {
-	MYSQL_STMT *signup_procedure;
+	MYSQL_STMT *stmt;
 	MYSQL_BIND param[SIGNUP_SP_NO_PARAMS];
 
-	if (modality == 'p')
+	if (is_private)
 	{
-		if(!setup_prepared_stmt(&signup_procedure, "call registra_privato(?, ?, ?, ?, ?, ?)", conn)) 
+		if(!setup_prepared_stmt(&stmt, "call registra_privato(?, ?, ?, ?, ?, ?)", conn)) 
 		{
-			print_stmt_error(signup_procedure, "Unable to initialize signup statement\n");
-			goto err_sig_2;
+			print_stmt_error(stmt, "Unable to initialize the statement\n");
+			return 1;
 		}
 	}
 	else
 	{
-		if(!setup_prepared_stmt(&signup_procedure, "call registra_rivendita(?, ?, ?, ?, ?, ?, ?, ?)", conn)) 
+		if(!setup_prepared_stmt(&stmt, "call registra_rivendita(?, ?, ?, ?, ?, ?, ?, ?)", conn)) 
 		{
-			print_stmt_error(signup_procedure, "Unable to initialize signup statement\n");
-			goto err_sig_2;
+			print_stmt_error(stmt, "Unable to initialize the statement\n");
+			return 1;
 		}
 	}
 
@@ -209,7 +216,7 @@ static int attempt_signup(customer_signup_t *cst, char modality)
 	param[5].buffer = (cst->credentials).password;
 	param[5].buffer_length = strlen((cst->credentials).password);
 
-	if (modality == 'r')
+	if (!is_private)
 	{
 		param[6].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome_ref VARCHAR(32)
 		param[6].buffer = cst->referent_first_name;
@@ -220,35 +227,31 @@ static int attempt_signup(customer_signup_t *cst, char modality)
 		param[7].buffer_length = strlen(cst->referent_last_name);
 	}
 
-	if (mysql_stmt_bind_param(signup_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(signup_procedure, "Could not bind parameters for signup");
-		goto err_sig;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+		CLOSEANDRET(1);
 	}
 
-	if (mysql_stmt_execute(signup_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		if (mysql_stmt_errno(signup_procedure) == 1062)
+		if (mysql_stmt_errno(stmt) == 1062)
 			fprintf(stderr, "User already exists!\n");
 		else
-			print_stmt_error(signup_procedure, "Could not execute signup procedure");
-		goto err_sig;
+			print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(1);
 	}
 
-	mysql_stmt_close(signup_procedure);
+	mysql_stmt_close(stmt);
 	return 0;
-
-    err_sig:
-	mysql_stmt_close(signup_procedure);
-    err_sig_2:
-	return 1;
 }
 
-static void login_manager(void)
+static bool login_manager(void)
 {
 	char client_identifier[REALSIZE(CUSTOMER_CODE_MAX_LENGTH)];
 	credentials_t cred;
 	role_t role;
+	char choice;
 
 	memset(&client_identifier, 0, CUSTOMER_CODE_MAX_LENGTH * sizeof(char));
     memset(&cred, 0, sizeof(credentials_t));
@@ -262,8 +265,8 @@ static void login_manager(void)
 	
 	switch (role)
 	{
-		case CLP: run_as_customer(cred.username, client_identifier, true); break;
-		case CLR: run_as_customer(cred.username, client_identifier, false); break;
+		case CLP: run_as_customer(cred.username, client_identifier, true, false); break;
+		case CLR: run_as_customer(cred.username, client_identifier, false, false); break;
 		case ADM:
 		case OPP:
 		case MNG:
@@ -273,13 +276,31 @@ static void login_manager(void)
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
 			abort();
 	}
+
+	if (role == ERR)
+	{
+		choice = multi_choice("Do you wanna quit? ", "yn", 2);
+		if (choice == 'n')
+			return false;
+	}
+
+	return true;
 }
 
-static void signup_manager(void)
+static char *strupper(char *str)
+{
+	for (unsigned int i = 0; i < strlen(str); ++i)
+		str[i] = toupper(str[i]);
+		
+	return str;
+}
+
+static bool signup_manager(void)
 {
 	char password_check[REALSIZE(CRED_LENGTH)];
 	customer_signup_t cst;
 	char modality;
+	char choice;
 	int ret;
 	
 	memset(&cst, 0, sizeof(customer_signup_t));
@@ -337,8 +358,16 @@ retype_pass:
 		get_input(NAME_LENGTH, cst.referent_last_name, false, true);		
 	}
 
-	ret = attempt_signup(&cst, modality);
-	(ret == 1) ? printf("Signup failed!\n") : printf("Succesfully signed up\n");
+	ret = attempt_signup(&cst, (modality == 'p'));
 
+	if (ret == 1)
+	{
+		printf("Signup failed!\n");
+		choice = multi_choice("Do you wanna quit? ", "yn", 2);
+		return (choice == 'y');
+	}
+
+	run_as_customer((cst.credentials).username, strupper(cst.code), (modality == 'p'), true); 
+	return true;
 }
 

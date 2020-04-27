@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "defines.h"
 
 #define PATH_LENGTH 16
@@ -13,6 +14,7 @@
 #define PROC_STR_LENGTH 64
 #define UPDATE_ADDR_SP_NO_PARAMS 2
 #define ADD_CONTACT_SP_NO_PARAMS 3
+#define MODIFY_CONTACT_LIST_SP_NO_PARAMS 2
 
 typedef struct customer_info
 {
@@ -35,15 +37,15 @@ static customer_info_t curr_customer;
 
 static unsigned int attempt_open_order(order_sp_params_t *input)
 {
-	MYSQL_STMT *create_order_procedure;
+	MYSQL_STMT *stmt;
 	
 	MYSQL_BIND param[CREATE_ORDER_SP_NO_PARAMS];
 	unsigned int id;
 
-	if(!setup_prepared_stmt(&create_order_procedure, "call crea_ordine(?, ?, ?, ?, ?, ?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call crea_ordine(?, ?, ?, ?, ?, ?)", conn)) 
     {
-		print_stmt_error(create_order_procedure, "Unable to initialize create order statement\n");
-		goto err_open_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 0;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -90,41 +92,36 @@ static unsigned int attempt_open_order(order_sp_params_t *input)
 	param[5].buffer = &id;
 	param[5].buffer_length = sizeof(unsigned int);
 
-	if (mysql_stmt_bind_param(create_order_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(create_order_procedure, "Could not bind parameters for create order");
-		goto err_open;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(0);
 	}
 
-	if (mysql_stmt_execute(create_order_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(create_order_procedure, "Could not execute create order procedure");
-		goto err_open;
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(0);
 	}
 
 	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_id INT
 	param[0].buffer = &id;
 	param[0].buffer_length = sizeof(unsigned int);
 	
-	if(mysql_stmt_bind_result(create_order_procedure, param)) 
+	if(mysql_stmt_bind_result(stmt, param)) 
 	{
-		print_stmt_error(create_order_procedure, "Could not retrieve output parameter");
-		goto err_open;
+		print_stmt_error(stmt, "Could not retrieve output parameter");
+		CLOSEANDRET(0);
 	}
 	
-	if(mysql_stmt_fetch(create_order_procedure)) 
+	if(mysql_stmt_fetch(stmt)) 
 	{
-		print_stmt_error(create_order_procedure, "Could not buffer results");
-		goto err_open;
+		print_stmt_error(stmt, "Could not buffer results");
+		CLOSEANDRET(0);
 	}
 
-	mysql_stmt_close(create_order_procedure);
+	mysql_stmt_close(stmt);
 	return id;
-
-    err_open:
-	mysql_stmt_close(create_order_procedure);
-    err_open_2:
-	return 0;    
 }
 
 static void open_order(void)
@@ -168,7 +165,7 @@ static void open_order(void)
 static int attempt_to_exec_op_on_order(bool is_add, unsigned int order_id, unsigned int species_code, unsigned int quantity)
 {
     char sp_str[PROC_STR_LENGTH];
-	MYSQL_STMT *order_procedure;
+	MYSQL_STMT *stmt;
 	MYSQL_BIND param[ORDER_SP_NO_PARAMS];
 
     memset(sp_str, 0, sizeof(sp_str));
@@ -176,10 +173,10 @@ static int attempt_to_exec_op_on_order(bool is_add, unsigned int order_id, unsig
     snprintf(sp_str, PROC_STR_LENGTH, "call %s(?, ?, ?, ?)", 
         (is_add) ? "aggiungi_specie_ad_ordine_esistente" : "modifica_ordine");
 
-	if(!setup_prepared_stmt(&order_procedure, sp_str, conn)) 
+	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
     {
-		print_stmt_error(order_procedure, "Unable to initialize selected operation on order statement\n");
-		goto err_op_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+	    return 1; 
 	}
 
 	memset(param, 0, sizeof(param));
@@ -201,25 +198,20 @@ static int attempt_to_exec_op_on_order(bool is_add, unsigned int order_id, unsig
     param[3].buffer_length = sizeof(unsigned int);
 
 
-	if (mysql_stmt_bind_param(order_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(order_procedure, "Could not bind parameters for selected operation on order");
-		goto err_op;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(1);
 	}
 
-	if (mysql_stmt_execute(order_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(order_procedure, "Could not execute selected operation on order procedure");
-		goto err_op;
+		print_stmt_error(stmt, "Could not execute selected the statement");
+		CLOSEANDRET(1);
     }
 
-	mysql_stmt_close(order_procedure);
-	return 0;
-
-    err_op:
-	mysql_stmt_close(order_procedure);
-    err_op_2:
-	return 1;    
+	mysql_stmt_close(stmt);
+	return 0; 
 }
 
 static void exec_op_on_order(bool is_add)
@@ -276,15 +268,15 @@ static void exec_op_on_order(bool is_add)
 
 static int attempt_to_remove_spec_from_order(unsigned int order_id, unsigned int species_code)
 {
-	MYSQL_STMT *order_procedure;
+	MYSQL_STMT *stmt;
 	MYSQL_BIND param[ORDER_SP_NO_PARAMS];
 
     int deleted_order;
 
-	if(!setup_prepared_stmt(&order_procedure, "call rimuovi_specie_da_ordine(?, ?, ?, ?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call rimuovi_specie_da_ordine(?, ?, ?, ?)", conn)) 
     {
-		print_stmt_error(order_procedure, "Unable to initialize remove species from order statement\n");
-		goto err_del_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return -1;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -306,41 +298,36 @@ static int attempt_to_remove_spec_from_order(unsigned int order_id, unsigned int
     param[3].buffer_length = sizeof(int);
 
 
-	if (mysql_stmt_bind_param(order_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(order_procedure, "Could not bind parameters for remove species from order");
-		goto err_del;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+	    CLOSEANDRET(-1);
 	}
 
-	if (mysql_stmt_execute(order_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(order_procedure, "Could not execute emove species from order procedure");
-		goto err_del;
+		print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(-1);
     }
 
 	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_ordine_eliminato_si_no INT
 	param[0].buffer = &deleted_order;
 	param[0].buffer_length = sizeof(int);
 	
-	if(mysql_stmt_bind_result(order_procedure, param)) 
+	if(mysql_stmt_bind_result(stmt, param)) 
 	{
-		print_stmt_error(order_procedure, "Could not retrieve output parameter");
-		goto err_del;
+		print_stmt_error(stmt, "Could not retrieve output parameter");
+		CLOSEANDRET(-1);
 	}
 	
-	if(mysql_stmt_fetch(order_procedure)) 
+	if(mysql_stmt_fetch(stmt)) 
 	{
-		print_stmt_error(order_procedure, "Could not buffer results");
-		goto err_del;
-	}
+		print_stmt_error(stmt, "Could not buffer results");
+		CLOSEANDRET(-1);	
+    }
 
-	mysql_stmt_close(order_procedure);
-	return deleted_order;
-
-    err_del:
-	mysql_stmt_close(order_procedure);
-    err_del_2:
-	return -1;    
+	mysql_stmt_close(stmt);
+	return deleted_order;  
 }
 
 static void remove_spec_from_order(void)
@@ -382,14 +369,14 @@ static void remove_spec_from_order(void)
 
 static unsigned int attempt_finalize_order(unsigned int order_id)
 {
-	MYSQL_STMT *finalize_order_procedure;	
+	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[FINALIZE_ORDER_SP_NO_PARAMS];
 
 
-	if(!setup_prepared_stmt(&finalize_order_procedure, "call finalizza_ordine(?, ?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call finalizza_ordine(?, ?)", conn)) 
     {
-		print_stmt_error(finalize_order_procedure, "Unable to initialize finalize order statement\n");
-		goto err_fin_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 1;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -402,25 +389,20 @@ static unsigned int attempt_finalize_order(unsigned int order_id)
 	param[1].buffer = &order_id;
 	param[1].buffer_length = sizeof(unsigned int);
 
-	if (mysql_stmt_bind_param(finalize_order_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(finalize_order_procedure, "Could not bind parameters for finalize order");
-		goto err_fin;
-	}
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(1); 	
+    }
 
-	if (mysql_stmt_execute(finalize_order_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(finalize_order_procedure, "Could not execute finalize order procedure");
-		goto err_fin;
+		print_stmt_error(stmt, "Could not execute the statement");
+    	CLOSEANDRET(1); 
 	}
 
-	mysql_stmt_close(finalize_order_procedure);
-	return 0;
-
-    err_fin:
-	mysql_stmt_close(finalize_order_procedure);
-    err_fin_2:
-	return 1;    
+	mysql_stmt_close(stmt);
+	return 0;  
 }
 
 static void finalize_order(void) 
@@ -449,13 +431,13 @@ static void finalize_order(void)
 
 static unsigned int attempt_search_species(char *name)
 {
-	MYSQL_STMT *search_procedure;	
+	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[SEARCH_SP_NO_PARAMS];
 
-	if(!setup_prepared_stmt(&search_procedure, "call visualizza_dettagli_specie(?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?)", conn)) 
     {
-		print_stmt_error(search_procedure, "Unable to initialize search statement\n");
-		goto err_search_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return 1;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -464,27 +446,25 @@ static unsigned int attempt_search_species(char *name)
 	param[0].buffer = name;
 	param[0].buffer_length = strlen(name);
 
-	if (mysql_stmt_bind_param(search_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(search_procedure, "Could not bind parameters for search species");
-		goto err_search;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(1);
 	}
 
-	if (mysql_stmt_execute(search_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(search_procedure, "Could not execute search species procedure");
-		goto err_search;
-	}
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(1);	
+    }
 
-    if (!dump_result_set(search_procedure, "\nSearch results:")) { goto err_search; }
+    if (!dump_result_set(stmt, "\nSearch results:")) 
+    {
+        CLOSEANDRET(1);
+    }
     
-	mysql_stmt_close(search_procedure);
+	mysql_stmt_close(stmt);
 	return 0;
-
-    err_search:
-	mysql_stmt_close(search_procedure);
-    err_search_2:
-	return 1;    
 }
 
 static void search_species(void) 
@@ -506,7 +486,7 @@ static void search_species(void)
 static unsigned int attempt_update_addr(char *addr, bool is_res)
 {
     char sp_str[PROC_STR_LENGTH];
-	MYSQL_STMT *addr_procedure;	
+	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[UPDATE_ADDR_SP_NO_PARAMS];
 
     memset(sp_str, 0, sizeof(sp_str));
@@ -514,10 +494,10 @@ static unsigned int attempt_update_addr(char *addr, bool is_res)
     snprintf(sp_str, PROC_STR_LENGTH, "call modifica_%s(?, ?)", 
         (is_res) ? "residenza" : "fatturazione");
 
-	if(!setup_prepared_stmt(&addr_procedure, sp_str, conn)) 
+	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
     {
-		print_stmt_error(addr_procedure, "Unable to initialize update address statement\n");
-		goto err_addr_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 1;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -540,32 +520,28 @@ static unsigned int attempt_update_addr(char *addr, bool is_res)
     }
 
 
-	if (mysql_stmt_bind_param(addr_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(addr_procedure, "Could not bind parameters for update address");
-		goto err_addr;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(1);
 	}
 
-	if (mysql_stmt_execute(addr_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(addr_procedure, "Could not execute update address procedure");
-		goto err_addr;
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(1);
 	}
     
-	mysql_stmt_close(addr_procedure);
-	return 0;
-
-    err_addr:
-	mysql_stmt_close(addr_procedure);
-    err_addr_2:
-	return 1;    
+	mysql_stmt_close(stmt);
+	return 0;   
 }
 
 static void update_addr(bool is_res)
 {
     char addr[REALSIZE(ADDRESS_LENGTH)];
-    init_screen(false);
     int ret;
+
+    init_screen(false);
 
     printf("*** Update your %s address ***\n", (is_res) ? "residential" : "billing");
     printf("Customer code.......%s: %s\n", (is_res) ? "" : ".............", curr_customer.code);
@@ -586,7 +562,7 @@ static void update_addr(bool is_res)
 static unsigned int attempt_add_contact(char *contact, char *type, bool is_customer)
 {
     char sp_str[PROC_STR_LENGTH];
-	MYSQL_STMT *contact_procedure;	
+	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[ADD_CONTACT_SP_NO_PARAMS];
 
     memset(sp_str, 0, sizeof(sp_str));
@@ -594,10 +570,10 @@ static unsigned int attempt_add_contact(char *contact, char *type, bool is_custo
     snprintf(sp_str, PROC_STR_LENGTH, "call aggiungi_contatto_%s(?, ?, ?)", 
         (is_customer) ? "cliente" : "referente");
 
-	if(!setup_prepared_stmt(&contact_procedure, sp_str, conn)) 
+	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
     {
-		print_stmt_error(contact_procedure, "Unable to initialize add contact statement\n");
-		goto err_add_cont_2;
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 1;
 	}
 
 	memset(param, 0, sizeof(param));
@@ -614,34 +590,33 @@ static unsigned int attempt_add_contact(char *contact, char *type, bool is_custo
     param[2].buffer = type;
     param[2].buffer_length = strlen(type);
 
-	if (mysql_stmt_bind_param(contact_procedure, param) != 0) 
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
-		print_stmt_error(contact_procedure, "Could not bind parameters for add contact");
-		goto err_add_cont;
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+		CLOSEANDRET(1);
 	}
 
-	if (mysql_stmt_execute(contact_procedure) != 0) 
+	if (mysql_stmt_execute(stmt) != 0) 
 	{
-		print_stmt_error(contact_procedure, "Could not execute add contact procedure");
-		goto err_add_cont;
+        if (mysql_stmt_errno(stmt) == 1062)
+			fprintf(stderr, "Contact already inserted!\n");
+		else
+			print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(1);
 	}
     
-	mysql_stmt_close(contact_procedure);
-	return 0;
-
-    err_add_cont:
-	mysql_stmt_close(contact_procedure);
-    err_add_cont_2:
-	return 1;    
+	mysql_stmt_close(stmt);
+	return 0;  
 }
 
-static void add_contact(bool is_customer)
+static void add_contact(bool is_customer, bool show_prompt)
 {
     char contact[REALSIZE(CONTACT_LENGTH)];
     char type[REALSIZE(TYPE_MAX_LENGTH)];
-    init_screen(false);
     int ret;
     char choice;
+
+    init_screen(false);
 
     printf("*** Add a contact to your %s list ***\n", (is_customer) ? "" : "referent");
     printf("%s code.....: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
@@ -665,6 +640,97 @@ static void add_contact(bool is_customer)
 
     if (ret == 0)
         printf("Contact succesfully added\n");
+    else
+        printf("Operation failed\n");
+        
+    if (show_prompt)
+    {
+        printf("Press enter key to get back to menu ...\n");
+        getchar();
+    }
+}
+
+static unsigned int attempt_to_modify_contact_list(char *contact, bool is_customer, bool to_delete)
+{
+    char sp_str[PROC_STR_LENGTH];
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[MODIFY_CONTACT_LIST_SP_NO_PARAMS];
+
+    memset(sp_str, 0, sizeof(sp_str));
+
+    if (to_delete)
+    {
+        if (is_customer)
+            snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_contatto_cliente(?, ?)");
+        else   
+            snprintf(sp_str, PROC_STR_LENGTH, "call rimuovi_contatto_referente(?, ?)");
+    }
+    else
+    {
+        if (is_customer)
+            snprintf(sp_str, PROC_STR_LENGTH, "call modifica_contatto_preferito_cliente(?, ?)");
+        else   
+            snprintf(sp_str, PROC_STR_LENGTH, "call modifica_contatto_preferito_referente(?, ?)");
+    }
+
+	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 1;
+	}
+
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+    param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_contatto VARCHAR(256)
+    param[1].buffer = contact;
+    param[1].buffer_length = strlen(contact);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+		CLOSEANDRET(1);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+        if (to_delete && (mysql_stmt_errno(stmt) == 1451))
+			fprintf(stderr, "Cannot remove contact because it is associated to an order!\n");
+		else
+			print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(1);
+	}
+    
+	mysql_stmt_close(stmt);
+	return 0;  
+}
+
+static void modify_contact_list(bool is_customer, bool to_delete)
+{
+    char contact[REALSIZE(CONTACT_LENGTH)];
+    int ret;
+
+    init_screen(false);
+    
+    if (to_delete)
+        printf("*** Remove a contact from your %s list ***\n", (is_customer) ? "" : "referent");
+    else
+        printf("*** Change %s favourite contact %s ***\n", 
+            (is_customer) ? "your" : "",
+            (is_customer) ? "" : "of your referent");
+ 
+    printf("%s code.....: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
+
+    printf("Insert new contact: ");
+    get_input(CONTACT_LENGTH, contact, false, true);
+
+    ret = attempt_to_modify_contact_list(contact, is_customer, to_delete);
+
+    if (ret == 0)
+        printf("Contact succesfully %s\n", (to_delete) ? "removed" : "changed");
     else
         printf("Operation failed\n");
         
@@ -719,6 +785,39 @@ static void profile_management_menu(void)
         printf("1) Update your residential address\n");
         printf("2) Update your billing address\n");
         printf("3) Add a contact to your list\n");
+        printf("4) Remove contact from your list\n");
+        printf("5) Change your favourite contact\n");
+        printf("6) Back to main menu\n");
+
+        choice = multi_choice("Pick an option", "123456", 6);
+
+        switch (choice)
+        {
+            case '1': update_addr(true); break;
+            case '2': update_addr(false); break;
+            case '3': add_contact(true, true); break;
+            case '4': modify_contact_list(true, true); break;
+            case '5': modify_contact_list(true, false); break;
+            case '6': return;
+            default:
+                fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+                abort();
+        }
+    }
+}
+
+static void referent_management_menu(void)
+{
+    char choice;
+
+    while (true)
+    {
+        init_screen(false);
+
+        printf("*** [REFERENT MANAGEMENT] What do you wanna do? ***\n\n");
+        printf("1) Add a contact to your referent list\n");
+        printf("2) Remove contact from your referent list\n");
+        printf("3) Change favourite contact of your referent\n");
         printf("4) Back to main menu\n");
 
         choice = multi_choice("Pick an option", "1234", 4);
@@ -727,8 +826,10 @@ static void profile_management_menu(void)
         {
             case '1': update_addr(true); break;
             case '2': update_addr(false); break;
-            case '3': add_contact(true); break;
-            case '4': return;
+            case '3': add_contact(true, true); break;
+            case '4': modify_contact_list(true, true); break;
+            case '5': modify_contact_list(true, false); break;
+            case '6': return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();
@@ -739,34 +840,64 @@ static void profile_management_menu(void)
 static void main_menu(void)
 {
     char choice;
-
-    while (true)
+    if (curr_customer.is_private)
     {
-        init_screen(true);
-        printf("Welcome %s (%s)\n\n", curr_customer.username, curr_customer.code);
-        printf("*** What do you wanna do? ***\n\n");
-        printf("1) Orders management\n");
-        printf("2) Profile management\n");
-		printf("3) Quit\n");
-
-        choice = multi_choice("Pick an option", "123", 3);
-
-        switch (choice)
+        while (true)
         {
-            case '1': order_management_menu(); break;
-            case '2': profile_management_menu(); break;
-            case '3': printf("Bye bye!\n\n\n"); return;
-            default:
-            	fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
-		        abort();
+            init_screen(true);
+            printf("Welcome %s (%s)\n\n", curr_customer.username, curr_customer.code);
+            printf("*** What do you wanna do? ***\n\n");
+            printf("1) Orders management\n");
+            printf("2) Profile management\n");
+            printf("3) Quit\n");
+
+            choice = multi_choice("Pick an option", "123", 3);
+
+            switch (choice)
+            {
+                case '1': order_management_menu(); break;
+                case '2': profile_management_menu(); break;
+                case '3': printf("Bye bye!\n\n\n"); return;
+                default:
+                    fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+                    abort();
+            }
         }
     }
+    else
+    {
+        while (true)
+        {
+            init_screen(true);
+            printf("Welcome %s (%s)\n\n", curr_customer.username, curr_customer.code);
+            printf("*** What do you wanna do? ***\n\n");
+            printf("1) Orders management\n");
+            printf("2) Profile management\n");
+            printf("3) Referent management\n");
+            printf("4) Quit\n");
+
+            choice = multi_choice("Pick an option", "1234", 4);
+
+            switch (choice)
+            {
+                case '1': order_management_menu(); break;
+                case '2': profile_management_menu(); break;
+                case '3': referent_management_menu(); break;
+                case '4': printf("Bye bye!\n\n\n"); return;
+                default:
+                    fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+                    abort();
+            }
+        }        
+    }
+
 }
 
-void run_as_customer(char *username, char *customer_code, bool is_private)
+void run_as_customer(char *username, char *customer_code, bool is_private, bool first_access)
 {
     char path[PATH_LENGTH];
     config_t cnf;
+    char choice;
 
     memset(path, 0, PATH_LENGTH);   
     memset(&curr_customer, 0, sizeof(customer_info_t));
@@ -775,8 +906,6 @@ void run_as_customer(char *username, char *customer_code, bool is_private)
     memcpy(curr_customer.code, customer_code, CUSTOMER_CODE_MAX_LENGTH);
     memcpy(curr_customer.username, username, CRED_LENGTH);
     curr_customer.is_private = is_private;
-
-    printf("%s\n", curr_customer.code);
 
     snprintf(path, PATH_LENGTH, "config/%s.user", (is_private) ? "clp" : "clr");
 
@@ -791,7 +920,15 @@ void run_as_customer(char *username, char *customer_code, bool is_private)
 		exit(EXIT_FAILURE);
 	}
 
-    main_menu();
+    if (first_access)
+    {
+        choice = multi_choice("Do you wanna insert a contact?", "yn", 2);
+        if (choice == 'y')
+        {
+            add_contact(true, false);
+            sleep(1.5);
+        }
+    }
 
-    return;
+    main_menu();
 }
