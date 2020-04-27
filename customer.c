@@ -696,10 +696,7 @@ static unsigned int attempt_add_contact(char *contact, char *type, bool is_custo
 
 	if (mysql_stmt_execute(stmt) != 0) 
 	{
-        if (mysql_stmt_errno(stmt) == 1062)
-			fprintf(stderr, "Contact already inserted!\n");
-		else
-			print_stmt_error(stmt, "Could not execute the statement");
+        print_stmt_error(stmt, "Could not execute the statement");
 		CLOSEANDRET(1);
 	}
     
