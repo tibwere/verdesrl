@@ -16,6 +16,9 @@
 #define ADD_CONTACT_SP_NO_PARAMS 3
 #define MODIFY_CONTACT_LIST_SP_NO_PARAMS 2
 
+/* bitmask: 00000001 (prima colonna dell'output) */
+#define LEADING_ZERO_BITMASK_SEARCH 1 
+
 typedef struct customer_info
 {
     char username[REALSIZE(CRED_LENGTH)];
@@ -433,6 +436,7 @@ static unsigned int attempt_search_species(char *name)
 {
 	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[SEARCH_SP_NO_PARAMS];
+    char prompt[2 * SPEC_NAME_LENGTH];
 
 	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?)", conn)) 
     {
@@ -458,7 +462,12 @@ static unsigned int attempt_search_species(char *name)
         CLOSEANDRET(1);	
     }
 
-    if (!dump_result_set(stmt, "\nSearch results:")) 
+    if (strlen(name) > 0)
+        snprintf(prompt, SPEC_NAME_LENGTH, "\nSearch results for \'%s\':", name);
+    else
+        snprintf(prompt, SPEC_NAME_LENGTH, "\nSearch results:");
+
+    if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_SEARCH)) 
     {
         CLOSEANDRET(1);
     }

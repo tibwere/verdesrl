@@ -109,7 +109,7 @@ static void dump_result_set_header(MYSQL_RES *res_set)
 	print_dashes(res_set);
 }
 
-bool dump_result_set(MYSQL_STMT *stmt, char *title)
+bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 {
 	int i;
 	int status;
@@ -260,7 +260,16 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title)
 					case MYSQL_TYPE_LONG:
 					case MYSQL_TYPE_SHORT:
 					case MYSQL_TYPE_TINY:
-						printf(" %-*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
+						/* ad ogni iterazione verifico se l'i-esimo
+						 * bit della maschera e' settato ad uno.
+						 * In tal caso la stampa prevede un padding di 0
+						 * iniziali altrimenti una semplice spaziatura
+						 * come tutte le altre colonne
+						 */
+						if ((leading_zeros_bitmask & (1 << i)) == (1 << i))
+							printf(" %0*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
+						else
+							printf(" %-*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
 						break;
 
 					default:

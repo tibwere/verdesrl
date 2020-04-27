@@ -16,7 +16,7 @@ typedef struct credentials
     char password[REALSIZE(CRED_LENGTH)];
 } credentials_t;
 
-typedef struct customer_signup 
+typedef struct customer_signu0p 
 {
 	credentials_t credentials;
 	char code[REALSIZE(CUSTOMER_CODE_MAX_LENGTH)];
