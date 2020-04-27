@@ -615,12 +615,7 @@ static unsigned int attempt_to_modify_contact_list(char *contact, bool is_custom
 
 	if (mysql_stmt_execute(stmt) != 0) 
 	{
-        if (to_delete && (mysql_stmt_errno(stmt) == 1451))
-			fprintf(stderr, "Cannot remove contact because it is associated to an order!\n");
-        else if (!to_delete && (mysql_stmt_errno(stmt) == 1452))
-            fprintf(stderr, "Cannot set this contact as favourite one because you don't own it!\n");
-		else
-			print_stmt_error(stmt, "Could not execute the statement");
+		print_stmt_error(stmt, "Could not execute the statement");
 		CLOSEANDRET(1);
 	}
     
