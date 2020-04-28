@@ -8,7 +8,9 @@
 #define PATH_LENGTH 16
 #define CREATE_ORDER_SP_NO_PARAMS 6
 #define FINALIZE_ORDER_SP_NO_PARAMS 2
-#define ORDER_SP_NO_PARAMS 4
+#define ADD_TO_ORDER_SP_NO_PARAMS 4
+#define DELETE_FROM_ORDER_SP_NO_PARAMS 5
+#define MODIFY_ORDER_SP_NO_PARAMS 5
 #define SEARCH_SP_NO_PARAMS 1
 #define FINAL_MSG_LENGTH 32
 #define PROC_STR_LENGTH 64
@@ -165,18 +167,12 @@ static void open_order(void)
     getchar();
 }
 
-static int attempt_to_exec_op_on_order(bool is_add, unsigned int order_id, unsigned int species_code, unsigned int quantity)
+static int attempt_to_add_spec_to_order(unsigned int order_id, unsigned int species_code, unsigned int quantity)
 {
-    char sp_str[PROC_STR_LENGTH];
 	MYSQL_STMT *stmt;
-	MYSQL_BIND param[ORDER_SP_NO_PARAMS];
+	MYSQL_BIND param[ADD_TO_ORDER_SP_NO_PARAMS];
 
-    memset(sp_str, 0, sizeof(sp_str));
-
-    snprintf(sp_str, PROC_STR_LENGTH, "call %s(?, ?, ?, ?)", 
-        (is_add) ? "aggiungi_specie_ad_ordine_esistente" : "modifica_ordine");
-
-	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
+	if(!setup_prepared_stmt(&stmt, "call aggiungi_specie_ad_ordine_esistente(?, ?, ?, ?)", conn)) 
     {
 		print_stmt_error(stmt, "Unable to initialize the statement\n");
 	    return 1; 
@@ -217,6 +213,72 @@ static int attempt_to_exec_op_on_order(bool is_add, unsigned int order_id, unsig
 	return 0; 
 }
 
+static int attempt_to_modify_order(unsigned int order_id, unsigned int species_code, unsigned int quantity, unsigned long long *affected_rows)
+{
+	MYSQL_STMT *stmt;
+	MYSQL_BIND param[MODIFY_ORDER_SP_NO_PARAMS];
+
+
+	if(!setup_prepared_stmt(&stmt, "call modifica_ordine(?, ?, ?, ?, ?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return 1;
+	}
+
+	memset(param, 0, sizeof(param));
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+	param[1].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
+	param[1].buffer = &species_code;
+	param[1].buffer_length = sizeof(unsigned int);
+
+	param[2].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[2].buffer = &order_id;
+	param[2].buffer_length = sizeof(unsigned int);
+
+    param[3].buffer_type = MYSQL_TYPE_LONG; // IN var_quantita INT
+    param[3].buffer = &quantity;
+    param[3].buffer_length = sizeof(unsigned int);
+
+    param[4].buffer_type = MYSQL_TYPE_LONG; // OUT var_aggiornamento_eff INT
+    param[4].buffer = affected_rows;
+    param[4].buffer_length = sizeof(int);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+	    CLOSEANDRET(1);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(1);
+    }
+
+    param[1].buffer_type = MYSQL_TYPE_LONG; // OUT var_aggiornamento_eff INT
+    param[1].buffer = affected_rows;
+    param[1].buffer_length = sizeof(int);
+	
+	if(mysql_stmt_bind_result(stmt, param)) 
+	{
+		print_stmt_error(stmt, "Could not retrieve output parameter");
+		CLOSEANDRET(1);
+	}
+	
+	if(mysql_stmt_fetch(stmt)) 
+	{
+		print_stmt_error(stmt, "Could not buffer results");
+		CLOSEANDRET(1);	
+    }
+
+	mysql_stmt_close(stmt);
+	return 0;  
+}
+
 static void exec_op_on_order(bool is_add)
 {
     char buffer_for_integer[INT_STR_LENGTH];
@@ -224,8 +286,8 @@ static void exec_op_on_order(bool is_add)
     unsigned int order_id;
     unsigned int species_code;
     unsigned int quantity;
+    unsigned long long affected_rows = 0L;
     int ret;
-
 
     memset(buffer_for_integer, 0, INT_STR_LENGTH);
     memset(final_message, 0, FINAL_MSG_LENGTH);
@@ -252,31 +314,37 @@ static void exec_op_on_order(bool is_add)
     get_input(INT_STR_LENGTH, buffer_for_integer, false, true);
     quantity = strtol(buffer_for_integer, NULL, 10);
     
-    ret = attempt_to_exec_op_on_order(is_add, order_id, species_code, quantity); 
-
     if (is_add)
-        snprintf(final_message, FINAL_MSG_LENGTH, "added to");
+    {
+        ret = attempt_to_add_spec_to_order(order_id, species_code, quantity); 
+        if (ret == 0)
+            printf("Species %u succesfully added to your order (ID %010u)\n", species_code, order_id);
+        else
+            printf("Operation failed\n");
+    }
     else
-        snprintf(final_message, FINAL_MSG_LENGTH, "update in");
-
-    if (ret == 0)
-        printf("Species %u succesfully %s your order (ID %010u)\n", species_code, final_message, order_id);
-    else
-        printf("Operation failed\n");
-    
-        
+    {
+        ret = attempt_to_modify_order(order_id, species_code, quantity, &affected_rows);
+        if (affected_rows == 0 && ret == 0)
+            printf("Nothing has changed (species %u not in order [ID %010u])\n", species_code, order_id);
+        else if (affected_rows > 0 && ret == 0)
+            printf("Species %u succesfully updated in your order (ID %010u)\n", species_code, order_id);
+        else
+            printf("Operation failed\n");
+    }
+ 
     printf("Press enter key to get back to menu ...\n");
     getchar();
 }
 
-static int attempt_to_remove_spec_from_order(unsigned int order_id, unsigned int species_code)
+static int attempt_to_remove_spec_from_order(unsigned int order_id, unsigned int species_code, unsigned long long *affected_rows)
 {
 	MYSQL_STMT *stmt;
-	MYSQL_BIND param[ORDER_SP_NO_PARAMS];
+	MYSQL_BIND param[DELETE_FROM_ORDER_SP_NO_PARAMS];
 
     int deleted_order;
 
-	if(!setup_prepared_stmt(&stmt, "call rimuovi_specie_da_ordine(?, ?, ?, ?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call rimuovi_specie_da_ordine(?, ?, ?, ?, ?)", conn)) 
     {
 		print_stmt_error(stmt, "Unable to initialize the statement\n");
         return -1;
@@ -300,6 +368,9 @@ static int attempt_to_remove_spec_from_order(unsigned int order_id, unsigned int
     param[3].buffer = &deleted_order;
     param[3].buffer_length = sizeof(int);
 
+    param[4].buffer_type = MYSQL_TYPE_LONG; // OUT var_eliminazione_eff INT
+    param[4].buffer = affected_rows;
+    param[4].buffer_length = sizeof(int);
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
@@ -316,6 +387,10 @@ static int attempt_to_remove_spec_from_order(unsigned int order_id, unsigned int
 	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_ordine_eliminato_si_no INT
 	param[0].buffer = &deleted_order;
 	param[0].buffer_length = sizeof(int);
+
+    param[1].buffer_type = MYSQL_TYPE_LONG; // OUT var_eliminazione_eff INT
+    param[1].buffer = affected_rows;
+    param[1].buffer_length = sizeof(int);
 	
 	if(mysql_stmt_bind_result(stmt, param)) 
 	{
@@ -339,6 +414,7 @@ static void remove_spec_from_order(void)
     unsigned int order_id;
     unsigned int species_code;
     int deleted_order;
+    unsigned long long affected_rows = 0L;
 
     memset(buffer_for_integer, 0, INT_STR_LENGTH);
 
@@ -354,13 +430,16 @@ static void remove_spec_from_order(void)
     get_input(INT_STR_LENGTH, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
     
-    deleted_order = attempt_to_remove_spec_from_order(order_id, species_code); 
+    deleted_order = attempt_to_remove_spec_from_order(order_id, species_code, &affected_rows); 
 
     if (deleted_order == -1)
         printf("Operation failed\n");
     else
     {
-        printf("Species %u succesfully deleted from your order (ID %010u)\n", species_code, order_id);
+        if (affected_rows == 0)
+            printf("Nothing has changed (species %u not in order [ID %010u])\n", species_code, order_id);
+        else
+            printf("Species %u succesfully deleted from your order (ID %010u)\n", species_code, order_id);
         if (deleted_order == 1)
             printf("Order (ID %010u) has been deleted (there were no more plants belonging to it)\n", order_id);
     }
@@ -837,12 +916,10 @@ static void referent_management_menu(void)
 
         switch (choice)
         {
-            case '1': update_addr(true); break;
-            case '2': update_addr(false); break;
-            case '3': add_contact(true, true); break;
-            case '4': modify_contact_list(true, true); break;
-            case '5': modify_contact_list(true, false); break;
-            case '6': return;
+            case '1': add_contact(true, true); break;
+            case '2': modify_contact_list(true, true); break;
+            case '3': modify_contact_list(true, false); break;
+            case '4': return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                 abort();
