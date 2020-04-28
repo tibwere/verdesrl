@@ -773,6 +773,11 @@ static unsigned int attempt_add_contact(char *contact, char *type, bool is_custo
         print_stmt_error(stmt, "Could not execute the statement");
 		CLOSEANDRET(1);
 	}
+
+    if (!dump_result_set(stmt, "\nUpdated list:", 0)) 
+    {
+        CLOSEANDRET(1);
+    }
     
 	mysql_stmt_close(stmt);
 	return 0;  
@@ -809,8 +814,7 @@ static void add_contact(bool is_customer, bool show_prompt)
 
     if (ret == 0)
     {
-        printf("Contact succesfully added\n");
-        choice = multi_choice("Do you wanna set this as your favourite contact?", "yn", 2);
+        choice = multi_choice("\nDo you wanna set this as your favourite contact?", "yn", 2);
         if (choice == 'y')
         {
             ret = attempt_to_modify_contact_list(contact, is_customer, false);
@@ -819,6 +823,7 @@ static void add_contact(bool is_customer, bool show_prompt)
             else
                 printf("Operation failed\n");
         }
+        else return;
     }
     else
         printf("Operation failed\n");
