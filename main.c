@@ -5,26 +5,23 @@
 #include <mysql.h>
 #include "defines.h"
 
-#define LOGIN_SP_NO_PARAMS 4
-#define SIGNUP_SP_NO_PARAMS 8
-
 typedef enum { CLP, CLR, ADM, OPP, MNG, CPP, ERR } role_t;
 
 typedef struct credentials
 {
-    char username[REALSIZE(CRED_LENGTH)];
-    char password[REALSIZE(CRED_LENGTH)];
+    char username[BUFFSIZE_L];
+    char password[BUFFSIZE_L];
 } credentials_t;
 
-typedef struct customer_signu0p 
+typedef struct customer_signup 
 {
 	credentials_t credentials;
-	char code[REALSIZE(CUSTOMER_CODE_MAX_LENGTH)];
-	char name[REALSIZE(NAME_LENGTH)];
-	char residential_address[REALSIZE(ADDRESS_LENGTH)];
-	char billing_address[REALSIZE(ADDRESS_LENGTH)];
-	char referent_first_name[REALSIZE(NAME_LENGTH)];
-	char referent_last_name[REALSIZE(NAME_LENGTH)];
+	char code[BUFFSIZE_XS];
+	char name[BUFFSIZE_S];
+	char residential_address[BUFFSIZE_M];
+	char billing_address[BUFFSIZE_M];
+	char referent_first_name[BUFFSIZE_S];
+	char referent_last_name[BUFFSIZE_S];
 } customer_signup_t;
 
 
@@ -34,7 +31,9 @@ static bool login_manager(void);
 static bool signup_manager(void);
 static char *strupper(char *str);
 
+
 MYSQL *conn;
+
 
 int main (void)
 {
@@ -92,18 +91,16 @@ int main (void)
 static role_t attempt_login(credentials_t *cred, char *identifier) 
 {
 	MYSQL_STMT *stmt;
-	
-	MYSQL_BIND param[LOGIN_SP_NO_PARAMS];
+	MYSQL_BIND param[4];
 	int role;
-    
+
+	memset(param, 0, sizeof(param)); 
 
 	if(!setup_prepared_stmt(&stmt, "call login(?, ?, ?, ?)", conn)) 
 	{
 		print_stmt_error(stmt, "Unable to initialize the statement\n");
 		return ERR;
 	}
-
-	memset(param, 0, sizeof(param));
 	
 	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
 	param[0].buffer = cred->username;
@@ -119,7 +116,7 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 
     param[3].buffer_type = MYSQL_TYPE_VAR_STRING; // OUT var_codice_cliente VARCHAR(16)
 	param[3].buffer = identifier;
-	param[3].buffer_length = CUSTOMER_CODE_MAX_LENGTH * sizeof(char);
+	param[3].buffer_length = BUFFSIZE_XS * sizeof(char);
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
@@ -140,7 +137,7 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 
     param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // OUT var_codice_cliente VARCHAR(16)
 	param[1].buffer = identifier;
-	param[1].buffer_length = CUSTOMER_CODE_MAX_LENGTH * sizeof(char);
+	param[1].buffer_length = BUFFSIZE_XS * sizeof(char);
 	
 	if(mysql_stmt_bind_result(stmt, param)) 
 	{
@@ -161,7 +158,9 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 static int attempt_signup(customer_signup_t *cst, bool is_private) 
 {
 	MYSQL_STMT *stmt;
-	MYSQL_BIND param[SIGNUP_SP_NO_PARAMS];
+	MYSQL_BIND param[(is_private ? 6 : 8)];
+
+	memset(param, 0, sizeof(param));
 
 	if (is_private)
 	{
@@ -179,8 +178,6 @@ static int attempt_signup(customer_signup_t *cst, bool is_private)
 			return 1;
 		}
 	}
-
-	memset(param, 0, sizeof(param));
 	
 	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_codice CHAR(16) / CHAR(11)
 	param[0].buffer = cst->code;
@@ -245,18 +242,18 @@ static int attempt_signup(customer_signup_t *cst, bool is_private)
 
 static bool login_manager(void)
 {
-	char client_identifier[REALSIZE(CUSTOMER_CODE_MAX_LENGTH)];
+	char client_identifier[BUFFSIZE_XS];
 	credentials_t cred;
 	role_t role;
 	char choice;
 
-	memset(&client_identifier, 0, CUSTOMER_CODE_MAX_LENGTH * sizeof(char));
-    memset(&cred, 0, sizeof(credentials_t));
+	memset(&client_identifier, 0, sizeof(client_identifier));
+    memset(&cred, 0, sizeof(cred));
 
 	printf("Insert username: ");
-	get_input(CRED_LENGTH, cred.username, false, true);
+	get_input(BUFFSIZE_L, cred.username, false, true);
 	printf("Insert password: ");
-	get_input(CRED_LENGTH, cred.password, true, true);
+	get_input(BUFFSIZE_L, cred.password, true, true);
 
 	role = attempt_login(&cred, client_identifier);
 	
@@ -294,13 +291,14 @@ static char *strupper(char *str)
 
 static bool signup_manager(void)
 {
-	char password_check[REALSIZE(CRED_LENGTH)];
+	char password_check[BUFFSIZE_L];
 	customer_signup_t cst;
 	char modality;
 	char choice;
 	int ret;
 	
-	memset(&cst, 0, sizeof(customer_signup_t));
+	memset(&cst, 0, sizeof(cst));
+	memset(password_check, 0, sizeof(password_check));
 
 	modality = multi_choice("Are you a [p]rivate or [r]etailer?", "pr", 2);
 
@@ -311,14 +309,14 @@ static bool signup_manager(void)
 	}
 
 	printf("Insert username: ");
-	get_input(CRED_LENGTH, (cst.credentials).username, false, true);
+	get_input(BUFFSIZE_L, (cst.credentials).username, false, true);
 
 retype_pass:
 	printf("Insert password: ");
-	get_input(CRED_LENGTH, (cst.credentials).password, true, true);
+	get_input(BUFFSIZE_L, (cst.credentials).password, true, true);
 
 	printf("Confirm password: ");
-	get_input(CRED_LENGTH, password_check, true, true);
+	get_input(BUFFSIZE_L, password_check, true, true);
 
 	if (strcmp((cst.credentials).password, password_check) != 0)
 	{
@@ -338,21 +336,21 @@ retype_pass:
 	}
 
 	printf("Insert your name: ");
-	get_input(NAME_LENGTH, cst.name, false, true);
+	get_input(BUFFSIZE_S, cst.name, false, true);
 
 	printf("Insert your residential address: ");
-	get_input(ADDRESS_LENGTH, cst.residential_address, false, true);
+	get_input(BUFFSIZE_M, cst.residential_address, false, true);
 
 	printf("Insert your billing address (default null): ");
-	get_input(ADDRESS_LENGTH, cst.billing_address, false, false);
+	get_input(BUFFSIZE_M, cst.billing_address, false, false);
 
 	if (modality == 'r')
 	{
 		printf("Insert referent first name: ");
-		get_input(NAME_LENGTH, cst.referent_first_name, false, true);
+		get_input(BUFFSIZE_S, cst.referent_first_name, false, true);
 
 		printf("Insert referent last name: ");
-		get_input(NAME_LENGTH, cst.referent_last_name, false, true);		
+		get_input(BUFFSIZE_S, cst.referent_last_name, false, true);		
 	}
 
 	ret = attempt_signup(&cst, (modality == 'p'));

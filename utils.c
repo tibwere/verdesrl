@@ -234,8 +234,8 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 					continue;
 				}
 
-				switch (rs_bind[i].buffer_type) 
-				{					
+				switch (rs_bind[i].buffer_type) {
+					
 					case MYSQL_TYPE_VAR_STRING:
 					case MYSQL_TYPE_DATETIME:
 					case MYSQL_TYPE_NEWDECIMAL:

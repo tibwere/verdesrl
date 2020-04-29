@@ -3,11 +3,11 @@
 #include <string.h>
 #include "defines.h"
 
-#define LINE_SIZE 1024
+#define LINE 1024
 
 int parse_config(const char *path, config_t *conf, const char * delimiter) 
 {
-    char line[LINE_SIZE];
+    char line[LINE];
     char *key;
     char *value;
     int no_lines = 0;
@@ -16,7 +16,7 @@ int parse_config(const char *path, config_t *conf, const char * delimiter)
     if (file == NULL) 
         return 1;
 
-    while (fgets(line, LINE_SIZE, file) != NULL && no_lines < 5) 
+    while (fgets(line, LINE, file) != NULL && no_lines < 5) 
     {   
         ++ no_lines;
         key = strtok(line, delimiter);
@@ -24,13 +24,13 @@ int parse_config(const char *path, config_t *conf, const char * delimiter)
         value[strcspn(value, "\n")] = '\0'; // necessario per rimuovere il '\n' finale
 
         if (strcmp(key, "host") == 0) 
-            strncpy(conf->host, value, DBHOST_LENGTH);
+            strncpy(conf->host, value, BUFFSIZE_L);
         else if (strcmp(key, "username") == 0)
-            strncpy(conf->username, value, DBUSER_LENGTH);
+            strncpy(conf->username, value, BUFFSIZE_L);
         else if (strcmp(key, "password") == 0)
-            strncpy(conf->password, value, DBPASS_LENGTH);
+            strncpy(conf->password, value, BUFFSIZE_L);
         else if (strcmp(key, "database") == 0)
-            strncpy(conf->database, value, DBNAME_LENGTH); 
+            strncpy(conf->database, value, BUFFSIZE_L); 
         else if (strcmp(key, "port") == 0)
             conf->port = strtol(value, NULL, 10);  
         else 
