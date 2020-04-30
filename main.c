@@ -26,11 +26,11 @@ typedef struct customer_signup
 
 
 static role_t attempt_login(credentials_t *cred, char *identifier); 
-static int attempt_signup(customer_signup_t *cst, bool is_private);
+static bool attempt_signup(customer_signup_t *cst, bool is_private);
 static bool login_manager(void);
 static bool signup_manager(void);
 static char *strupper(char *str);
-static int attempt_change_password(char *username, char *old_passwd, char *new_passwd);
+static bool attempt_change_password(char *username, char *old_passwd, char *new_passwd);
 
 
 MYSQL *conn;
@@ -156,7 +156,7 @@ static role_t attempt_login(credentials_t *cred, char *identifier)
 	return role;
 }
 
-static int attempt_signup(customer_signup_t *cst, bool is_private) 
+static bool attempt_signup(customer_signup_t *cst, bool is_private) 
 {
 	MYSQL_STMT *stmt;
 	MYSQL_BIND param[(is_private ? 6 : 8)];
@@ -168,7 +168,7 @@ static int attempt_signup(customer_signup_t *cst, bool is_private)
 		if(!setup_prepared_stmt(&stmt, "call registra_privato(?, ?, ?, ?, ?, ?)", conn)) 
 		{
 			print_stmt_error(stmt, "Unable to initialize the statement\n");
-			return 1;
+			return false;
 		}
 	}
 	else
@@ -176,7 +176,7 @@ static int attempt_signup(customer_signup_t *cst, bool is_private)
 		if(!setup_prepared_stmt(&stmt, "call registra_rivendita(?, ?, ?, ?, ?, ?, ?, ?)", conn)) 
 		{
 			print_stmt_error(stmt, "Unable to initialize the statement\n");
-			return 1;
+			return false;
 		}
 	}
 	
@@ -228,20 +228,20 @@ static int attempt_signup(customer_signup_t *cst, bool is_private)
 	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
 		print_stmt_error(stmt, "Could not bind parameters for the statement");
-		CLOSEANDRET(1);
+		CLOSEANDRET(false);
 	}
 
 	if (mysql_stmt_execute(stmt) != 0) 
 	{
 		print_stmt_error(stmt, "Could not execute the statement");
-		CLOSEANDRET(1);
+		CLOSEANDRET(false);
 	}
 
 	mysql_stmt_close(stmt);
-	return 0;
+	return true;
 }
 
-static int attempt_change_password(char *username, char *old_passwd, char *new_passwd) 
+static bool attempt_change_password(char *username, char *old_passwd, char *new_passwd) 
 {
 	MYSQL_STMT *stmt;
 	MYSQL_BIND param[3];
@@ -251,7 +251,7 @@ static int attempt_change_password(char *username, char *old_passwd, char *new_p
 	if(!setup_prepared_stmt(&stmt, "call modifica_password(?, ?, ?)", conn)) 
 	{
 		print_stmt_error(stmt, "Unable to initialize the statement\n");
-		return 1;
+		return false;
 	}
 	
 	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
@@ -269,17 +269,17 @@ static int attempt_change_password(char *username, char *old_passwd, char *new_p
 	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
 		print_stmt_error(stmt, "Could not bind parameters for the statement");
-		CLOSEANDRET(1);
+		CLOSEANDRET(false);
 	}
 
 	if (mysql_stmt_execute(stmt) != 0) 
 	{
 		print_stmt_error(stmt, "Could not execute the statement");
-		CLOSEANDRET(1);
+		CLOSEANDRET(false);
 	}
 
 	mysql_stmt_close(stmt);
-	return 0;
+	return true;
 }
 
 static bool login_manager(void)
@@ -292,6 +292,8 @@ static bool login_manager(void)
 	memset(&client_identifier, 0, sizeof(client_identifier));
     memset(&cred, 0, sizeof(cred));
 
+	init_screen(false);
+
 	printf("Insert username: ");
 	get_input(BUFFSIZE_L, cred.username, false, true);
 	printf("Insert password: ");
@@ -303,9 +305,9 @@ static bool login_manager(void)
 	{
 		case CLP: run_as_customer(cred.username, client_identifier, true, false); break;
 		case CLR: run_as_customer(cred.username, client_identifier, false, false); break;
+		case MNG: run_as_manager(cred.username); break;
 		case ADM:
 		case OPP:
-		case MNG:
 		case CPP: printf("Sorry not implemented yet!\n"); break;
 		case ERR: printf("Login failed!\n"); break;
 		default: 
@@ -336,7 +338,6 @@ static bool signup_manager(void)
 	customer_signup_t cst;
 	char modality;
 	char choice;
-	int ret;
 	
 	memset(&cst, 0, sizeof(cst));
 	memset(password_check, 0, sizeof(password_check));
@@ -348,6 +349,8 @@ static bool signup_manager(void)
 		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
 		abort();		
 	}
+
+	init_screen(false);
 
 	printf("Insert username...........................: ");
 	get_input(BUFFSIZE_L, (cst.credentials).username, false, true);
@@ -394,9 +397,7 @@ retype_pass:
 		get_input(BUFFSIZE_S, cst.referent_last_name, false, true);		
 	}
 
-	ret = attempt_signup(&cst, (modality == 'p'));
-
-	if (ret == 1)
+	if (!attempt_signup(&cst, (modality == 'p')))
 	{
 		printf("Signup failed!\n");
 		choice = multi_choice("Do you wanna quit? ", "yn", 2);
@@ -409,7 +410,6 @@ retype_pass:
 
 void change_password(char *username) 
 {
-    int ret;
 	char old_passwd[BUFFSIZE_L];
 	char new_passwd[BUFFSIZE_L];
 	char passwd_check[BUFFSIZE_L];
@@ -437,10 +437,8 @@ retype_pass:
 		printf("Mismatch password, please retry!\n");
 		goto retype_pass;
 	}
-
-    ret = attempt_change_password(username, old_passwd, new_passwd);
     
-    if (ret == 0)
+    if (attempt_change_password(username, old_passwd, new_passwd))
 		printf("Password has been changed!\n");
 	else
         printf("Operation failed\n");

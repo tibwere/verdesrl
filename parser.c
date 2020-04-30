@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include "defines.h"
 
 #define LINE 1024
 
-int parse_config(const char *path, config_t *conf, const char * delimiter) 
+bool parse_config(const char *path, config_t *conf, const char * delimiter) 
 {
     char line[LINE];
     char *key;
