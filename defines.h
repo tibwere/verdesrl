@@ -35,3 +35,4 @@ void print_stmt_error (MYSQL_STMT *stmt, char *message);
 char multi_choice(const char *question, const char *choices, int no_choices);
 void run_as_customer(char *username, char *customer_code, bool is_private, bool first_access);
 bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask);
+void change_password(char *username);

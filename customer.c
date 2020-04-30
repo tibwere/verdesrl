@@ -1103,15 +1103,17 @@ static void main_menu(void)
             printf("*** What do you wanna do? ***\n\n");
             printf("1) Orders management\n");
             printf("2) Profile management\n");
-            printf("3) Quit\n");
+            printf("3) Change password\n");
+            printf("4) Quit\n");
 
-            choice = multi_choice("Pick an option", "123", 3);
+            choice = multi_choice("Pick an option", "1234", 4);
 
             switch (choice)
             {
                 case '1': order_management_menu(); break;
                 case '2': profile_management_menu(); break;
-                case '3': printf("Bye bye!\n\n\n"); return;
+                case '3': change_password(curr_customer.username); break;
+                case '4': printf("Bye bye!\n\n\n"); return;
                 default:
                     fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                     abort();
@@ -1128,16 +1130,18 @@ static void main_menu(void)
             printf("1) Orders management\n");
             printf("2) Profile management\n");
             printf("3) Referent management\n");
-            printf("4) Quit\n");
+            printf("4) Change password\n");
+            printf("5) Quit\n");
 
-            choice = multi_choice("Pick an option", "1234", 4);
+            choice = multi_choice("Pick an option", "12345", 5);
 
             switch (choice)
             {
                 case '1': order_management_menu(); break;
                 case '2': profile_management_menu(); break;
                 case '3': referent_management_menu(); break;
-                case '4': printf("Bye bye!\n\n\n"); return;
+                case '4': change_password(curr_customer.username); break;
+                case '5': printf("Bye bye!\n\n\n"); return;
                 default:
                     fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
                     abort();

@@ -30,6 +30,7 @@ static int attempt_signup(customer_signup_t *cst, bool is_private);
 static bool login_manager(void);
 static bool signup_manager(void);
 static char *strupper(char *str);
+static int attempt_change_password(char *username, char *old_passwd, char *new_passwd);
 
 
 MYSQL *conn;
@@ -240,6 +241,47 @@ static int attempt_signup(customer_signup_t *cst, bool is_private)
 	return 0;
 }
 
+static int attempt_change_password(char *username, char *old_passwd, char *new_passwd) 
+{
+	MYSQL_STMT *stmt;
+	MYSQL_BIND param[3];
+
+	memset(param, 0, sizeof(param)); 
+
+	if(!setup_prepared_stmt(&stmt, "call modifica_password(?, ?, ?)", conn)) 
+	{
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return 1;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
+	param[0].buffer = username;
+	param[0].buffer_length = strlen(username);
+
+	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_vecchia_password VARCHAR(128)
+	param[1].buffer = old_passwd;
+	param[1].buffer_length = strlen(old_passwd);
+
+    param[2].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nuova_password VARCHAR(128)
+	param[2].buffer = new_passwd;
+	param[2].buffer_length = strlen(new_passwd);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+		CLOSEANDRET(1);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+		CLOSEANDRET(1);
+	}
+
+	mysql_stmt_close(stmt);
+	return 0;
+}
+
 static bool login_manager(void)
 {
 	char client_identifier[BUFFSIZE_XS];
@@ -274,8 +316,7 @@ static bool login_manager(void)
 	if (role == ERR)
 	{
 		choice = multi_choice("Do you wanna quit? ", "yn", 2);
-		if (choice == 'n')
-			return false;
+		return (choice == 'y');
 	}
 
 	return true;
@@ -308,14 +349,14 @@ static bool signup_manager(void)
 		abort();		
 	}
 
-	printf("Insert username: ");
+	printf("Insert username...........................: ");
 	get_input(BUFFSIZE_L, (cst.credentials).username, false, true);
 
 retype_pass:
-	printf("Insert password: ");
+	printf("Insert password...........................: ");
 	get_input(BUFFSIZE_L, (cst.credentials).password, true, true);
 
-	printf("Confirm password: ");
+	printf("Confirm password..........................: ");
 	get_input(BUFFSIZE_L, password_check, true, true);
 
 	if (strcmp((cst.credentials).password, password_check) != 0)
@@ -326,19 +367,19 @@ retype_pass:
 
 	if (modality == 'p')
 	{
-		printf("Insert fiscal code: ");
+		printf("Insert fiscal code........................: ");
 		get_input(16, cst.code, false, true);
 	}
 	else
 	{
-		printf("Insert VAT code: ");
+		printf("Insert VAT code...........................: ");
 		get_input(11, cst.code, false, true);
 	}
 
-	printf("Insert your name: ");
+	printf("Insert your name..........................: ");
 	get_input(BUFFSIZE_S, cst.name, false, true);
 
-	printf("Insert your residential address: ");
+	printf("Insert your residential address...........: ");
 	get_input(BUFFSIZE_M, cst.residential_address, false, true);
 
 	printf("Insert your billing address (default null): ");
@@ -346,10 +387,10 @@ retype_pass:
 
 	if (modality == 'r')
 	{
-		printf("Insert referent first name: ");
+		printf("Insert referent first name...........: ");
 		get_input(BUFFSIZE_S, cst.referent_first_name, false, true);
 
-		printf("Insert referent last name: ");
+		printf("Insert referent last name:............:");
 		get_input(BUFFSIZE_S, cst.referent_last_name, false, true);		
 	}
 
@@ -366,3 +407,44 @@ retype_pass:
 	return true;
 }
 
+void change_password(char *username) 
+{
+    int ret;
+	char old_passwd[BUFFSIZE_L];
+	char new_passwd[BUFFSIZE_L];
+	char passwd_check[BUFFSIZE_L];
+
+	memset(old_passwd, 0, sizeof(old_passwd));
+	memset(new_passwd, 0, sizeof(new_passwd));
+	memset(passwd_check, 0, sizeof(passwd_check));
+
+    init_screen(false);
+
+    printf("*** Change password ***\n");
+    printf("Customer username......: %s\n", username);
+    printf("Insert old password....: ");
+    get_input(BUFFSIZE_L, old_passwd, true, true);
+
+retype_pass:
+	printf("Insert new password....: ");
+	get_input(BUFFSIZE_L, new_passwd, true, true);
+
+	printf("Retype new password....: ");
+	get_input(BUFFSIZE_L, passwd_check, true, true);
+
+	if (strcmp(new_passwd, passwd_check) != 0)
+	{
+		printf("Mismatch password, please retry!\n");
+		goto retype_pass;
+	}
+
+    ret = attempt_change_password(username, old_passwd, new_passwd);
+    
+    if (ret == 0)
+		printf("Password has been changed!\n");
+	else
+        printf("Operation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
+    getchar();
+}
