@@ -306,9 +306,9 @@ static bool login_manager(void)
 		case CLP: run_as_customer(cred.username, client_identifier, true, false); break;
 		case CLR: run_as_customer(cred.username, client_identifier, false, false); break;
 		case MNG: run_as_manager(cred.username); break;
+		case CPP: run_as_chief_of_staff(cred.username); break;
 		case ADM:
-		case OPP:
-		case CPP: printf("Sorry not implemented yet!\n"); break;
+		case OPP: printf("Sorry not implemented yet!\n"); break;
 		case ERR: printf("Login failed!\n"); break;
 		default: 
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

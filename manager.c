@@ -18,7 +18,7 @@ typedef struct insert_species_sp_no_params
  } insert_species_sp_no_params_t;
 
 
-char curr_user[BUFFSIZE_L];
+static char curr_user[BUFFSIZE_L];
 
 
 static int check_price(char *inserted_price)
