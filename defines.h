@@ -15,7 +15,9 @@
             mysql_stmt_close(stmt); \
             return (x);
 
+
 extern MYSQL *conn;
+
 
 typedef struct configuration 
 {
