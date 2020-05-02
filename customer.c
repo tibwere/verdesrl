@@ -955,8 +955,11 @@ static bool attempt_report_order(unsigned int order_id)
         print_stmt_error(stmt, "Unexpected condition");
         CLOSEANDRET(false); 
     } 
-    
-    dump_result_set(stmt, "\n\nInvolved species:", LEADING_ZERO_BITMASK_IDX_0);
+
+    if (!dump_result_set(stmt, "\n\nInvolved species:", LEADING_ZERO_BITMASK_IDX_0)) 
+    {
+        CLOSEANDRET(false);
+    }
 
 	if (mysql_stmt_next_result(stmt))
     {
@@ -964,7 +967,10 @@ static bool attempt_report_order(unsigned int order_id)
         CLOSEANDRET(false); 
     }
 
-    dump_result_set(stmt, "\n\nEconiomic details:", 0);
+    if (!dump_result_set(stmt, "\n\nEconiomic details:", 0)) 
+    {
+        CLOSEANDRET(false);
+    }    
 
 	mysql_stmt_close(stmt);
 	return true;   

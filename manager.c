@@ -327,6 +327,11 @@ static int attempt_add_coloring(unsigned int species_code, char *coloring)
     	CLOSEANDRET(false); 
 	}
 
+    if (!dump_result_set(stmt, "\nUpdated coloring list:", 0)) 
+    {
+        CLOSEANDRET(false);
+    }
+
 	mysql_stmt_close(stmt);
 	return true;  
 }
@@ -565,6 +570,110 @@ exit:
     getchar();
 }
 
+static bool get_species_name(MYSQL_STMT *stmt, unsigned int species_code, char *species_info)
+{
+    int status;
+    MYSQL_BIND param[1];
+    char species_name[132];
+
+	memset(param, 0, sizeof(param));
+
+    param[0].buffer_type = MYSQL_TYPE_VAR_STRING;
+	param[0].buffer = species_name;
+	param[0].buffer_length = sizeof(species_name);
+
+    if(mysql_stmt_bind_result(stmt, param)) 
+	{
+		print_stmt_error(stmt, "Unable to bind output parameters");
+		return false;
+	}
+    
+    status = mysql_stmt_fetch(stmt);
+    
+    if (status == 1 || status == MYSQL_NO_DATA)
+        return false;
+    
+    snprintf(species_info, BUFFSIZE_XL, "%s [CODE: %010u]", species_name, species_code);
+
+    return true;
+}
+
+static bool attempt_report_species(unsigned int species_code)
+{
+   	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[1];
+    char species_info[BUFFSIZE_XL];
+    char prompt[2 * BUFFSIZE_XL];
+
+    memset(species_info, 0, sizeof(species_info));
+    memset(prompt, 0, sizeof(prompt));
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call report_specie(?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return false;
+	}
+
+    param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
+	param[0].buffer = &species_code;
+	param[0].buffer_length = sizeof(species_code);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false); 	
+    }
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+    	CLOSEANDRET(false); 
+	}
+
+    if (get_species_name(stmt, species_code, species_info))
+    {
+	    if (mysql_stmt_next_result(stmt))
+        {
+            print_stmt_error(stmt, "Unexpected condition");
+            CLOSEANDRET(false); 
+        }
+
+        snprintf(prompt, 2 * BUFFSIZE_XL, "\n\nSales details for \"%s\":", species_info);
+
+        if (!dump_result_set(stmt, prompt, 0)) 
+        {
+            CLOSEANDRET(false);
+        } 
+    }   
+
+	mysql_stmt_close(stmt);
+	return true;   
+}
+
+static void report_species(void)
+{
+    unsigned int species_code;
+    char buffer_for_integer[BUFFSIZE_XS];
+
+    memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+
+    init_screen(false);
+
+    printf("*** View sales trend for a chosen species ***\n");
+    printf("Insert species code..........: ");
+    get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
+    species_code = strtol(buffer_for_integer, NULL, 10);
+
+    putchar('\n');
+
+    if (!attempt_report_species(species_code))
+        printf("Operation failed\n");
+        
+    printf("\nPress enter key to get back to menu ...\n");
+    getchar();
+}
+
 void run_as_manager(char *username)
 {
     config_t cnf;
@@ -596,7 +705,7 @@ void run_as_manager(char *username)
         printf("3) Add a coloring for a flowering species\n");
         printf("4) Remove a coloring from a flowering species list\n");
         printf("5) Change the price of a species\n");
-        printf("6) View sales trend of the treated species\n");
+        printf("6) View sales trend for a chosen species\n");
         printf("7) Change password\n");
         printf("q) Quit\n");
 
@@ -609,7 +718,7 @@ void run_as_manager(char *username)
             case '3': add_coloring(); break;
             case '4': remove_coloring(); break;
             case '5': change_price(); break;
-            case '6': printf("Sorry not implemented yet"); break;
+            case '6': report_species(); break;
             case '7': change_password(curr_user); break;
             case 'q': printf("Bye bye!\n\n\n"); return;
             default:
