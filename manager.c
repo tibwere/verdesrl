@@ -21,7 +21,7 @@ typedef struct insert_species_sp_no_params
 static char curr_user[BUFFSIZE_L];
 
 
-static int check_price(char *inserted_price)
+static int check_price(char *inserted_price, char *strerror, size_t strerror_length)
 {
     regex_t reg;
     char err_mess[BUFFSIZE_L];
@@ -31,7 +31,7 @@ static int check_price(char *inserted_price)
     if (ret) 
     {
         regerror(ret, &reg, err_mess, sizeof(err_mess));
-        fprintf(stderr, "Unable to compile regexp to check inserted price\nThe error was: %s\n", err_mess);
+        snprintf(strerror, strerror_length, "Unable to compile regexp to check inserted price\nThe error was: %s\n", err_mess);
         return -1;
     }
 
@@ -49,7 +49,7 @@ static int check_price(char *inserted_price)
     else 
     {
         regerror(ret, &reg, err_mess, sizeof(err_mess));
-        fprintf(stderr, "Unable to exec regexp to check inserted price\nThe error was: %s\n", err_mess);
+        snprintf(strerror, strerror_length, "Unable to exec regexp to check inserted price\nThe error was: %s\n", err_mess);
         return -1;
     }
 }
@@ -101,7 +101,7 @@ static unsigned int attempt_insert_species(insert_species_sp_no_params_t *input)
     param[5].buffer = &(input->stock);
     param[5].buffer_length = sizeof(input->stock);
 
-    param[6].buffer_type = MYSQL_TYPE_NEWDECIMAL; // IN var_prezzp DECIMAL(7, 2)
+    param[6].buffer_type = MYSQL_TYPE_NEWDECIMAL; // IN var_prezzo DECIMAL(7, 2)
     param[6].buffer = input->price;
     param[6].buffer_length = strlen(input->price);
 
@@ -145,12 +145,14 @@ static void insert_a_species(void)
 {
     insert_species_sp_no_params_t params;
     char buffer_for_integer[BUFFSIZE_XS];
+    char strerror[BUFFSIZE_XL];
     unsigned int species_code;
     char choice;
     int ret;
 
     memset(&params, 0, sizeof(params));
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(strerror, 0, sizeof(strerror));
 
     init_screen(false);
 
@@ -182,7 +184,7 @@ static void insert_a_species(void)
 insert_price:
     printf("Insert price (#####.##)...........................: ");
     get_input(BUFFSIZE_XS, params.price, false, true);
-    ret = check_price(params.price);
+    ret = check_price(params.price, strerror, BUFFSIZE_XL);
 
     if (ret == 0)
     {
@@ -190,8 +192,12 @@ insert_price:
         goto insert_price;
     }
     if (ret == -1)
+    {
+        fprintf(stderr, strerror);
         goto exit;
-    
+    }
+
+    putchar('\n');
 
     species_code = attempt_insert_species(&params);
     if (species_code > 0)
@@ -238,7 +244,7 @@ static int attempt_remove_species(unsigned int species_code)
     	CLOSEANDRET(-1); 
 	}
 
-	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_codice INT
+	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_eliminazione_effettiva INT
 	param[0].buffer = &affected_rows;
 	param[0].buffer_length = sizeof(affected_rows);
 	
@@ -273,6 +279,8 @@ static void remove_a_species(void)
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
+    putchar('\n');
+
     ret = attempt_remove_species(species_code);
 
     if (ret > 0)
@@ -282,6 +290,277 @@ static void remove_a_species(void)
     else
         printf("Operation failed\n");
         
+    printf("Press enter key to get back to menu ...\n");
+    getchar();
+}
+
+static int attempt_add_coloring(unsigned int species_code, char *coloring)
+{
+    MYSQL_STMT *stmt;	
+	MYSQL_BIND param[2];
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call aggiungi_colorazione(?, ?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_specie_fiorita INT
+	param[0].buffer = &species_code;
+	param[0].buffer_length = sizeof(species_code);
+
+	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_colore VARCHAR(32)
+	param[1].buffer = coloring;
+	param[1].buffer_length = strlen(coloring);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false); 	
+    }
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+    	CLOSEANDRET(false); 
+	}
+
+	mysql_stmt_close(stmt);
+	return true;  
+}
+
+static void add_coloring(void)
+{
+    unsigned int species_code;
+    char coloring[BUFFSIZE_S];
+    char buffer_for_integer[BUFFSIZE_XS];
+
+    memset(coloring, 0, sizeof(coloring));
+    memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+
+    init_screen(false);
+
+    printf("*** Add a coloring for a flowering species ***\n");
+    printf("Insert species code.............: ");
+    get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
+    species_code = strtol(buffer_for_integer, NULL, 10);
+
+    printf("Insert coloring for this species: ");
+    get_input(BUFFSIZE_S, coloring, false, true);
+
+    putchar('\n');
+
+    if (attempt_add_coloring(species_code, coloring))
+        printf("Coloring \"%s\" for %010u succesfully added\n", coloring, species_code);
+    else
+        printf("Operation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
+    getchar();   
+}
+
+static int attempt_remove_coloring(unsigned int species_code, char *coloring)
+{
+    MYSQL_STMT *stmt;	
+	MYSQL_BIND param[3];
+    int affected_rows;
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call rimuovi_colorazione(?, ?, ?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return -1;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_specie_fiorita INT
+	param[0].buffer = &species_code;
+	param[0].buffer_length = sizeof(species_code);
+
+	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_colore VARCHAR(32)
+	param[1].buffer = coloring;
+	param[1].buffer_length = strlen(coloring);
+
+	param[2].buffer_type = MYSQL_TYPE_LONG; // OUT var_eliminazione_effettiva INT
+	param[2].buffer = &affected_rows;
+	param[2].buffer_length = sizeof(affected_rows);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(-1); 	
+    }
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+    	CLOSEANDRET(-1); 
+	}
+
+	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_eliminazione_effettiva INT
+	param[0].buffer = &affected_rows;
+	param[0].buffer_length = sizeof(affected_rows);
+	
+	if(mysql_stmt_bind_result(stmt, param)) 
+	{
+		print_stmt_error(stmt, "Could not retrieve output parameter");
+		CLOSEANDRET(-1);
+	}
+	
+	if(mysql_stmt_fetch(stmt)) 
+	{
+		print_stmt_error(stmt, "Could not buffer results");
+		CLOSEANDRET(-1);
+	}
+
+	mysql_stmt_close(stmt);
+	return affected_rows;   
+}
+
+static void remove_coloring(void)
+{
+    unsigned int species_code;
+    char coloring[BUFFSIZE_S];
+    char buffer_for_integer[BUFFSIZE_XS];
+    int ret;
+
+    memset(coloring, 0, sizeof(coloring));
+    memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+
+    init_screen(false);
+
+    printf("*** Remove a coloring from a flowering species ***\n");
+    printf("Insert species code..........: ");
+    get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
+    species_code = strtol(buffer_for_integer, NULL, 10);
+
+    printf("Insert coloring to be removed: ");
+    get_input(BUFFSIZE_S, coloring, false, true);
+
+    putchar('\n');
+
+    ret = attempt_remove_coloring(species_code, coloring);
+
+    if (ret > 0)
+        printf("Coloring \"%s\" succesfully removed for %010u\n", coloring, species_code);
+    else if (ret == 0)
+        printf("Nothing has changed (species %010u does not have this coloring)\n", species_code);
+    else
+        printf("Operation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
+    getchar(); 
+}
+
+static int attempt_change_price(unsigned int species_code, char *price)
+{
+    MYSQL_STMT *stmt;	
+	MYSQL_BIND param[3];
+    int affected_rows;
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call modifica_prezzo(?, ?, ?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return -1;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
+	param[0].buffer = &species_code;
+	param[0].buffer_length = sizeof(species_code);
+
+    param[1].buffer_type = MYSQL_TYPE_NEWDECIMAL; // IN var_prezzo DECIMAL(7, 2)
+    param[1].buffer = price;
+    param[1].buffer_length = strlen(price);
+
+	param[2].buffer_type = MYSQL_TYPE_LONG; // OUT var_aggiornamento_effettivo INT
+	param[2].buffer = &affected_rows;
+	param[2].buffer_length = sizeof(affected_rows);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(-1); 	
+    }
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+    	CLOSEANDRET(-1); 
+	}
+
+	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_aggiornamento_effettivo INT
+	param[0].buffer = &affected_rows;
+	param[0].buffer_length = sizeof(affected_rows);
+	
+	if(mysql_stmt_bind_result(stmt, param)) 
+	{
+		print_stmt_error(stmt, "Could not retrieve output parameter");
+		CLOSEANDRET(-1);
+	}
+	
+	if(mysql_stmt_fetch(stmt)) 
+	{
+		print_stmt_error(stmt, "Could not buffer results");
+		CLOSEANDRET(-1);
+	}
+
+	mysql_stmt_close(stmt);
+	return affected_rows;   
+}
+
+static void change_price(void)
+{
+    char buffer_for_integer[BUFFSIZE_XS];
+    char price[BUFFSIZE_XS];
+    char strerror[BUFFSIZE_XL];
+    unsigned int species_code;
+    int ret;
+
+    memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(strerror, 0, sizeof(strerror));
+    memset(price, 0, sizeof(price));
+
+
+    init_screen(false);
+
+    printf("*** Change the price of a species ***\n");
+
+    printf("Insert species code....: ");
+    get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
+    species_code = strtol(buffer_for_integer, NULL, 10);
+
+insert_price:
+    printf("Insert price (#####.##): ");
+    get_input(BUFFSIZE_XS, price, false, true);
+    ret = check_price(price, strerror, BUFFSIZE_XL);
+
+    if (ret == 0)
+    {
+        printf("Not compliant input please retry\n");
+        goto insert_price;
+    }
+    if (ret == -1)
+    {
+        fprintf(stderr, strerror);
+        goto exit;
+    }    
+
+    putchar('\n');
+
+    ret = attempt_change_price(species_code, price);
+
+    if (ret > 0)
+        printf("Price updated for %010u\n", species_code);    
+    else if (ret == 0)
+        printf("Nothing has changed (the stored and entered prices coincide)\n");
+    else
+        printf("Operation failed\n");
+        
+exit:
     printf("Press enter key to get back to menu ...\n");
     getchar();
 }
@@ -327,9 +606,9 @@ void run_as_manager(char *username)
         {
             case '1': insert_a_species(); break;
             case '2': remove_a_species(); break;
-            case '3': 
-            case '4':
-            case '5':
+            case '3': add_coloring(); break;
+            case '4': remove_coloring(); break;
+            case '5': change_price(); break;
             case '6': printf("Sorry not implemented yet"); break;
             case '7': change_password(curr_user); break;
             case 'q': printf("Bye bye!\n\n\n"); return;

@@ -157,6 +157,8 @@ static void open_order(void)
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     params.quantity = strtol(buffer_for_integer, NULL, 10);
 
+    putchar('\n');
+
     order_id = attempt_open_order(&params);
     if (order_id > 0)
         printf("New order opened (ID: %010u)\n", order_id);
@@ -310,6 +312,8 @@ static void exec_op_on_order(bool is_add)
     printf("Insert relative quantity: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     quantity = strtol(buffer_for_integer, NULL, 10);
+
+    putchar('\n');
     
     if (is_add)
     {
@@ -424,6 +428,8 @@ static void remove_spec_from_order(void)
     printf("Insert species code.....: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
+
+    putchar('\n');
     
     ret = attempt_to_remove_spec_from_order(order_id, species_code, &order_status); 
 
@@ -446,7 +452,7 @@ static void remove_spec_from_order(void)
     getchar();
 }
 
-static bool attempt_finalize_order(unsigned int order_id)
+static int attempt_finalize_order(unsigned int order_id)
 {
 	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[2];
@@ -497,6 +503,8 @@ static void finalize_order(void)
     printf("Insert order id....: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
+
+    putchar('\n');
 
     if (attempt_finalize_order(order_id))
         printf("Order %010u has been finalized\n", order_id);
@@ -563,6 +571,8 @@ static void search_species(void)
     printf("*** Search species by name ***\n");
     printf("Insert the name to filter on (default all): ");
     get_input(BUFFSIZE_M, name, false, false);
+
+    putchar('\n');
 
     if (!attempt_search_species(name))
         printf("Operation failed\n");
@@ -635,6 +645,8 @@ static void update_addr(bool is_res)
     printf("Customer code.......%s: %s\n", (is_res) ? "" : ".............", curr_customer.code);
     printf("Insert new address%s: ", (is_res) ? "" : " (default null)");
     get_input(BUFFSIZE_M, addr, false, is_res);
+
+    putchar('\n');
 
     if (attempt_update_addr(addr, is_res))
         printf("Address succesfully updated\n");
@@ -717,6 +729,8 @@ static void modify_contact_list(bool is_customer, bool to_delete)
     printf("%s code.: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
     printf("Insert contact: ");
     get_input(BUFFSIZE_XL, contact, false, true);
+
+    putchar('\n');
 
     if (attempt_to_modify_contact_list(contact, is_customer, to_delete))
         printf("Contact succesfully %s\n", (to_delete) ? "removed" : "changed");
@@ -806,6 +820,8 @@ static void add_contact(bool is_customer, bool show_prompt)
             fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
             abort();
     }
+
+    putchar('\n');
 
     if (attempt_add_contact(contact, type, is_customer))
     {
@@ -968,6 +984,8 @@ static void report_order(void)
     printf("Insert order id....: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
+
+    putchar('\n');
     
     if (!attempt_report_order(order_id))
         printf("Operation failed\n");

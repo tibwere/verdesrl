@@ -97,6 +97,8 @@ retype_pass:
             abort();
     }
 
+    putchar('\n');
+
     if (attempt_add_employee_account(username, password, role))
         printf("Employee account for %s [%s] was succesfylly created\n", username, role);
     else
