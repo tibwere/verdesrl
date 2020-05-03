@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <mysql.h>
 #include <regex.h>
+#include <time.h>
 #include "defines.h"
 
 typedef struct insert_species_sp_no_params 
@@ -593,7 +594,7 @@ static bool get_species_name(MYSQL_STMT *stmt, unsigned int species_code, char *
     if (status == 1 || status == MYSQL_NO_DATA)
         return false;
     
-    snprintf(species_info, BUFFSIZE_XL, "%s [CODE: %010u]", species_name, species_code);
+    snprintf(species_info, BUFFSIZE_XL, "\"%s\" [CODE: %010u]", species_name, species_code);
 
     return true;
 }
@@ -604,6 +605,9 @@ static bool attempt_report_species(unsigned int species_code)
 	MYSQL_BIND param[1];
     char species_info[BUFFSIZE_XL];
     char prompt[2 * BUFFSIZE_XL];
+    
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
 
     memset(species_info, 0, sizeof(species_info));
     memset(prompt, 0, sizeof(prompt));
@@ -639,7 +643,7 @@ static bool attempt_report_species(unsigned int species_code)
             CLOSEANDRET(false); 
         }
 
-        snprintf(prompt, 2 * BUFFSIZE_XL, "\n\nSales details for \"%s\":", species_info);
+        snprintf(prompt, 2 * BUFFSIZE_XL, "\n\nSales details for %s (year: %d):", species_info, (tm->tm_year + 1900));
 
         if (!dump_result_set(stmt, prompt, 0)) 
         {
