@@ -5,9 +5,6 @@
 #include <unistd.h>
 #include "defines.h"
 
-/* bitmask: 00000001 (prima colonna dell'output) */
-#define LEADING_ZERO_BITMASK_IDX_0 1 
-
 typedef struct customer_info
 {
     char username[BUFFSIZE_L];
@@ -40,18 +37,6 @@ typedef struct order_info
 
 static customer_info_t curr_customer;
 
-
-static int format_prompt(char *dest, size_t length, const char *src, unsigned int dots)
-{
-    int len = snprintf(dest, length, src);
-
-    for (unsigned int i = 0; i < dots; ++i)
-        dest[len + i] = '.';
-    
-    dest[len + dots] = '?';
-
-    return len + dots;
-}
 
 static bool attempt_report_orders_short(bool only_open)
 {
@@ -95,97 +80,6 @@ static bool attempt_report_orders_short(bool only_open)
     
 	mysql_stmt_close(stmt);
 	return true;
-}
-
-bool attempt_search_species(char *name)
-{
-	MYSQL_STMT *stmt;	
-	MYSQL_BIND param[1];
-    char prompt[BUFFSIZE_L];
-
-	memset(param, 0, sizeof(param));
-   	memset(prompt, 0, sizeof(prompt));
-
-	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?)", conn)) 
-    {
-		print_stmt_error(stmt, "Unable to initialize the statement\n");
-        return false;
-	}
-	
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome_comune	VARCHAR(64)
-	param[0].buffer = name;
-	param[0].buffer_length = strlen(name);
-
-	if (mysql_stmt_bind_param(stmt, param) != 0) 
-	{ 
-		print_stmt_error(stmt, "Could not bind parameters for the statement");
-        CLOSEANDRET(false);
-	}
-
-	if (mysql_stmt_execute(stmt) != 0) 
-	{
-		print_stmt_error(stmt, "Could not execute the statement");
-        CLOSEANDRET(false);	
-    }
-
-    if (strlen(name) > 0)
-        snprintf(prompt, BUFFSIZE_L, "\nSearch results for \'%s\':", name);
-    else
-        snprintf(prompt, BUFFSIZE_L, "\nSearch results:");
-
-    if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_IDX_0)) 
-    {
-        CLOSEANDRET(false);
-    }
-    
-	mysql_stmt_close(stmt);
-	return true;
-}
-
-void search_species(void) 
-{
-    char name[BUFFSIZE_M];
-
-    memset(name, 0, sizeof(name));
-
-    init_screen(false);
-
-    printf("*** Search species by name ***\n");
-    printf("Insert the name to filter on (default all): ");
-    get_input(BUFFSIZE_M, name, false, false);
-
-    putchar('\n');
-
-    if (!attempt_search_species(name))
-        printf("Operation failed\n");
-        
-    printf("\nPress enter key to get back to menu ...\n");
-    getchar();
-}
-
-void species_tips(unsigned int dots)
-{
-    char spec_name[BUFFSIZE_M];
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(spec_name, 0, sizeof(spec_name));
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-
-    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna search species by name to find the right code", dots);
-
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        printf("\nInsert the name to filter on (default all).......................: ");   
-        get_input(BUFFSIZE_M, spec_name, false, false);
-        if (!attempt_search_species(spec_name))
-            printf("Operation failed\n");
-
-        putchar('\n');
-    }
 }
 
 static bool attempt_search_species_belonging_to_order(unsigned int order_id)

@@ -11,6 +11,9 @@
 #define BUFFSIZE_L	129
 #define BUFFSIZE_XL	257
 
+/* bitmask: 00000001 (prima colonna dell'output) */
+#define LEADING_ZERO_BITMASK_IDX_0 1 
+
 #define CLOSEANDRET(x) \
             mysql_stmt_close(stmt); \
             return (x);
@@ -40,6 +43,6 @@ void run_as_manager(char *username);
 void run_as_chief_of_staff(char *username);
 bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask);
 void change_password(char *username);
-bool attempt_search_species(char *name);
 void search_species(void); 
 void species_tips(unsigned int dots);
+int format_prompt(char *dest, size_t length, const char *src, unsigned int dots);
