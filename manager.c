@@ -155,35 +155,35 @@ static void insert_a_species(void)
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
     memset(strerror, 0, sizeof(strerror));
 
-    init_screen(false);
+    init_screen(false); 
 
     printf("*** Insert a new species ***\n");
 
-    printf("Insert common name................................: ");
+    printf("Insert common name......................................: ");
     get_input(BUFFSIZE_M, params.common_name, false, true);
 
-    printf("Insert latin name.................................: ");
+    printf("Insert latin name.......................................: ");
     get_input(BUFFSIZE_M, params.latin_name, false, true);
 
-    choice = multi_choice("Which kind of species is it? [o]utdoor or [i]ndoor: ", "oi", 2);
+    choice = multi_choice("Which kind of species is it? [o]utdoor or [i]ndoor", "oi", 2);
     params.in_or_out = (choice == 'i');
 
-    choice = multi_choice("Which kind of species is it? [g]reen or [f]lowery.: ", "gf", 2);
+    choice = multi_choice("Which kind of species is it? [g]reen or [f]lowery.", "gf", 2);
     if (choice == 'f')
     {
-        printf("Insert default coloring...........................: ");
+        printf("Insert default coloring.................................: ");
         get_input(BUFFSIZE_S, params.coloring, false, true);
     }
 
-    choice = multi_choice("Is it exotic? [y]es or [n]o:......................: ", "yn", 2);
+    choice = multi_choice("Is it exotic.....................................?", "yn", 2);
     params.exotic = (choice == 'y') ? 1 : 0;
 
-    printf("Insert initial stock..............................: ");
+    printf("Insert initial stock....................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     params.stock = strtol(buffer_for_integer, NULL, 10);
 
 insert_price:
-    printf("Insert price (#####.##)...........................: ");
+    printf("Insert price (#####.##).................................: ");
     get_input(BUFFSIZE_XS, params.price, false, true);
     ret = check_price(params.price, strerror, BUFFSIZE_XL);
 
@@ -276,7 +276,9 @@ static void remove_a_species(void)
     init_screen(false);
 
     printf("*** Finalize an order ***\n");
-    printf("Insert species code: ");
+
+    species_tips(0);
+    printf("Insert species code.............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 

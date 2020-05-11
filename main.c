@@ -342,15 +342,15 @@ static bool signup_manager(void)
 	memset(&cst, 0, sizeof(cst));
 	memset(password_check, 0, sizeof(password_check));
 
-	modality = multi_choice("Are you a [p]rivate or [r]etailer?", "pr", 2);
+	init_screen(false);
+
+	modality = multi_choice("Are you a [p]rivate or [r]etailer..?", "pr", 2);
 
 	if (modality != 'p' && modality != 'r')
 	{
 		fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
 		abort();		
 	}
-
-	init_screen(false);
 
 	printf("Insert username...........................: ");
 	get_input(BUFFSIZE_L, (cst.credentials).username, false, true);
@@ -390,17 +390,17 @@ retype_pass:
 
 	if (modality == 'r')
 	{
-		printf("Insert referent first name...........: ");
+		printf("Insert referent first name................: ");
 		get_input(BUFFSIZE_S, cst.referent_first_name, false, true);
 
-		printf("Insert referent last name:............:");
+		printf("Insert referent last name:................:");
 		get_input(BUFFSIZE_S, cst.referent_last_name, false, true);		
 	}
 
 	if (!attempt_signup(&cst, (modality == 'p')))
 	{
 		printf("Signup failed!\n");
-		choice = multi_choice("Do you wanna quit? ", "yn", 2);
+		choice = multi_choice("Do you wanna quit?", "yn", 2);
 		return (choice == 'y');
 	}
 

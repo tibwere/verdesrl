@@ -40,4 +40,6 @@ void run_as_manager(char *username);
 void run_as_chief_of_staff(char *username);
 bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask);
 void change_password(char *username);
-
+bool attempt_search_species(char *name);
+void search_species(void); 
+void species_tips(unsigned int dots);

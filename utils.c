@@ -237,13 +237,12 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 				switch (rs_bind[i].buffer_type) {
 					
 					case MYSQL_TYPE_VAR_STRING:
-					case MYSQL_TYPE_DATETIME:
+					case MYSQL_TYPE_TIMESTAMP:
 					case MYSQL_TYPE_NEWDECIMAL:
 						printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);
 						break;
 				       
 					case MYSQL_TYPE_DATE:
-					case MYSQL_TYPE_TIMESTAMP:
 						date = (MYSQL_TIME *)rs_bind[i].buffer;
 						printf(" %d-%02d-%02d |", date->year, date->month, date->day);
 						break;

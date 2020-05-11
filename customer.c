@@ -41,6 +41,236 @@ typedef struct order_info
 static customer_info_t curr_customer;
 
 
+static int format_prompt(char *dest, size_t length, const char *src, unsigned int dots)
+{
+    int len = snprintf(dest, length, src);
+
+    for (unsigned int i = 0; i < dots; ++i)
+        dest[len + i] = '.';
+    
+    dest[len + dots] = '?';
+
+    return len + dots;
+}
+
+static bool attempt_report_orders_short(bool only_open)
+{
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[2];
+
+    printf("%d\n", only_open);
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call visualizza_ordini_cliente(?, ?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+	param[1].buffer_type = MYSQL_TYPE_TINY; // IN var_status TINYINT
+	param[1].buffer = &(only_open);
+	param[1].buffer_length = sizeof(bool);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(false);	
+    }
+
+    if (!dump_result_set(stmt, "Open orders:", LEADING_ZERO_BITMASK_IDX_0)) 
+    {
+        CLOSEANDRET(false);
+    }
+    
+	mysql_stmt_close(stmt);
+	return true;
+}
+
+bool attempt_search_species(char *name)
+{
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[1];
+    char prompt[BUFFSIZE_L];
+
+	memset(param, 0, sizeof(param));
+   	memset(prompt, 0, sizeof(prompt));
+
+	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome_comune	VARCHAR(64)
+	param[0].buffer = name;
+	param[0].buffer_length = strlen(name);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(false);	
+    }
+
+    if (strlen(name) > 0)
+        snprintf(prompt, BUFFSIZE_L, "\nSearch results for \'%s\':", name);
+    else
+        snprintf(prompt, BUFFSIZE_L, "\nSearch results:");
+
+    if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_IDX_0)) 
+    {
+        CLOSEANDRET(false);
+    }
+    
+	mysql_stmt_close(stmt);
+	return true;
+}
+
+void search_species(void) 
+{
+    char name[BUFFSIZE_M];
+
+    memset(name, 0, sizeof(name));
+
+    init_screen(false);
+
+    printf("*** Search species by name ***\n");
+    printf("Insert the name to filter on (default all): ");
+    get_input(BUFFSIZE_M, name, false, false);
+
+    putchar('\n');
+
+    if (!attempt_search_species(name))
+        printf("Operation failed\n");
+        
+    printf("\nPress enter key to get back to menu ...\n");
+    getchar();
+}
+
+void species_tips(unsigned int dots)
+{
+    char spec_name[BUFFSIZE_M];
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(spec_name, 0, sizeof(spec_name));
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+
+    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna search species by name to find the right code", dots);
+
+    choice = multi_choice(prompt, "yn", 2);
+    if (choice == 'y')
+    {
+        printf("\nInsert the name to filter on (default all).......................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    }
+}
+
+static bool attempt_search_species_belonging_to_order(unsigned int order_id)
+{
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[1];
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call visualizza_specie_appartenenti_ad_ordine(?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[0].buffer = &order_id;
+	param[0].buffer_length = sizeof(order_id);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(false);	
+    }
+
+    if (!dump_result_set(stmt, "Species belonging to selected order:", LEADING_ZERO_BITMASK_IDX_0)) 
+    {
+        CLOSEANDRET(false);
+    }
+    
+	mysql_stmt_close(stmt);
+	return true;    
+}
+
+static void search_species_belonging_to_order(unsigned int order_id, unsigned int dots)
+{
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+
+    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a list of species belonging to selected order", dots);
+        
+    choice = multi_choice(prompt, "yn", 2);
+    if (choice == 'y')
+    {
+        if (!attempt_search_species_belonging_to_order(order_id))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    }
+}
+
+static void order_tips(bool only_open, unsigned int dots)
+{
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+
+    if (only_open)
+        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your open orders", dots);
+    else    
+        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your orders", dots);
+
+    choice = multi_choice(prompt, "yn", 2);
+    if (choice == 'y')
+    {
+        if (!attempt_report_orders_short(only_open))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    }
+}
+
 static unsigned int attempt_open_order(order_sp_params_t *input)
 {
 	MYSQL_STMT *stmt;
@@ -141,19 +371,20 @@ static void open_order(void)
     init_screen(false);
 
     printf("*** Open a new order ***\n");
-    printf("Customer code........................................: %s\n", curr_customer.code);
+    printf("Customer code....................................................: %s\n", curr_customer.code);
     
-    printf("Insert shipping address (default residential address): ");
+    printf("Insert shipping address (default residential address)............: ");
     get_input(BUFFSIZE_M, params.shipping_address, false, false);
 
-    printf("Insert contact (default favourite one)...............: ");
+    printf("Insert contact (default favourite one)...........................: ");
     get_input(BUFFSIZE_XL, params.contact, false, false);
 
-    printf("Insert species code..................................: ");
+    species_tips(0);
+    printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     params.species = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert relative quantity.............................: ");
+    printf("Insert relative quantity.........................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     params.quantity = strtol(buffer_for_integer, NULL, 10);
 
@@ -299,17 +530,19 @@ static void exec_op_on_order(bool is_add)
         printf("*** Change the number of plants belonging to a species in an order ***\n");
 
 
-    printf("Customer code......: %s\n", curr_customer.code);
-    
-    printf("Insert order id.........: ");
+    printf("Customer code....................................................: %s\n", curr_customer.code);
+
+    order_tips(true, 13);    
+    printf("Insert order id..................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert species code.....: ");
+    species_tips(0);
+    printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert relative quantity: ");
+    printf("Insert relative quantity.........................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     quantity = strtol(buffer_for_integer, NULL, 10);
 
@@ -419,13 +652,15 @@ static void remove_spec_from_order(void)
 
     init_screen(false);
     printf("*** Remove a species from an order not closed yet ***\n");
-    printf("Customer code......: %s\n", curr_customer.code);
+    printf("Customer code........................................................: %s\n", curr_customer.code);
     
-    printf("Insert order id.........: ");
+    order_tips(true, 17);
+    printf("Insert order id......................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert species code.....: ");
+    search_species_belonging_to_order(order_id, 0);
+    printf("Insert species code..................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
@@ -499,8 +734,10 @@ static void finalize_order(void)
     init_screen(false);
 
     printf("*** Finalize an order ***\n");
-    printf("Customer code......: %s\n", curr_customer.code);
-    printf("Insert order id....: ");
+    printf("Customer code.......................................: %s\n", curr_customer.code);
+
+    order_tips(true, 0);
+    printf("Insert order id.....................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
@@ -512,72 +749,6 @@ static void finalize_order(void)
         printf("Operation failed\n");
         
     printf("Press enter key to get back to menu ...\n");
-    getchar();
-}
-
-static bool attempt_search_species(char *name)
-{
-	MYSQL_STMT *stmt;	
-	MYSQL_BIND param[1];
-    char prompt[BUFFSIZE_L];
-
-	memset(param, 0, sizeof(param));
-   	memset(prompt, 0, sizeof(prompt));
-
-	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?)", conn)) 
-    {
-		print_stmt_error(stmt, "Unable to initialize the statement\n");
-        return false;
-	}
-	
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome_comune	VARCHAR(64)
-	param[0].buffer = name;
-	param[0].buffer_length = strlen(name);
-
-	if (mysql_stmt_bind_param(stmt, param) != 0) 
-	{ 
-		print_stmt_error(stmt, "Could not bind parameters for the statement");
-        CLOSEANDRET(false);
-	}
-
-	if (mysql_stmt_execute(stmt) != 0) 
-	{
-		print_stmt_error(stmt, "Could not execute the statement");
-        CLOSEANDRET(false);	
-    }
-
-    if (strlen(name) > 0)
-        snprintf(prompt, BUFFSIZE_L, "\nSearch results for \'%s\':", name);
-    else
-        snprintf(prompt, BUFFSIZE_L, "\nSearch results:");
-
-    if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_IDX_0)) 
-    {
-        CLOSEANDRET(false);
-    }
-    
-	mysql_stmt_close(stmt);
-	return true;
-}
-
-static void search_species(void) 
-{
-    char name[BUFFSIZE_M];
-
-    memset(name, 0, sizeof(name));
-
-    init_screen(false);
-
-    printf("*** Search species by name ***\n");
-    printf("Insert the name to filter on (default all): ");
-    get_input(BUFFSIZE_M, name, false, false);
-
-    putchar('\n');
-
-    if (!attempt_search_species(name))
-        printf("Operation failed\n");
-        
-    printf("\nPress enter key to get back to menu ...\n");
     getchar();
 }
 
@@ -642,8 +813,8 @@ static void update_addr(bool is_res)
     init_screen(false);
 
     printf("*** Update your %s address ***\n", (is_res) ? "residential" : "billing");
-    printf("Customer code.......%s: %s\n", (is_res) ? "" : ".............", curr_customer.code);
-    printf("Insert new address%s: ", (is_res) ? "" : " (default null)");
+    printf("Customer code......%s: %s\n", (is_res) ? "" : ".............", curr_customer.code);
+    printf("Insert new address %s: ", (is_res) ? "" : " (default null)");
     get_input(BUFFSIZE_M, addr, false, is_res);
 
     putchar('\n');
@@ -655,6 +826,72 @@ static void update_addr(bool is_res)
         
     printf("Press enter key to get back to menu ...\n");
     getchar();
+}
+
+static bool attempt_show_contact_list(bool is_customer)
+{
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[1];
+    char sp_str[BUFFSIZE_L];
+
+	memset(param, 0, sizeof(param));
+    memset(sp_str, 0, sizeof(sp_str));
+
+    snprintf(sp_str, BUFFSIZE_L, "call visualizza_contatti_%s(?)", (is_customer) ? "cliente" : "referente");
+
+	if(!setup_prepared_stmt(&stmt, sp_str, conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_cliente	VARCHAR(16)
+	param[0].buffer = curr_customer.code;
+	param[0].buffer_length = strlen(curr_customer.code);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(false);	
+    }
+
+    if (!dump_result_set(stmt, "\nContact list:", LEADING_ZERO_BITMASK_IDX_0)) 
+    {
+        CLOSEANDRET(false);
+    }
+    
+	mysql_stmt_close(stmt);
+	return true;       
+}
+
+static void show_contact_list(bool is_customer, unsigned int dots)
+{
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+
+    if (is_customer)
+        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your contacts", dots);
+    else    
+        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your referent contacts", dots);
+
+    choice = multi_choice(prompt, "yn", 2);
+    if (choice == 'y')
+    {
+        if (!attempt_show_contact_list(is_customer))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    }
 }
 
 static bool attempt_to_modify_contact_list(char *contact, bool is_customer, bool to_delete)
@@ -725,9 +962,11 @@ static void modify_contact_list(bool is_customer, bool to_delete)
         printf("*** Change %s favourite contact %s ***\n", 
             (is_customer) ? "your" : "",
             (is_customer) ? "" : "of your referent");
- 
-    printf("%s code.: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
-    printf("Insert contact: ");
+    
+    printf("%s code....................................: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
+
+    show_contact_list(is_customer, 0);
+    printf("Insert contact.............................: ");
     get_input(BUFFSIZE_XL, contact, false, true);
 
     putchar('\n');
@@ -804,9 +1043,10 @@ static void add_contact(bool is_customer, bool show_prompt)
     init_screen(false);
 
     printf("*** Add a contact to your %s list ***\n", (is_customer) ? "" : "referent");
-    printf("%s code.....: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
+    printf("%s code....................................: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
 
-    printf("Insert new contact: ");
+    show_contact_list(is_customer, 0);
+    printf("Insert new contact...............................: ");
     get_input(BUFFSIZE_XL, contact, false, true);
 
     choice = multi_choice("Select type [m]obile, [l]andline, [e]mail", "mle", 3);
@@ -986,8 +1226,10 @@ static void report_order(void)
     init_screen(false);
 
     printf("*** View order details ***\n");
-    printf("Customer code......: %s\n", curr_customer.code);
-    printf("Insert order id....: ");
+    printf("Customer code..................................: %s\n", curr_customer.code);
+
+    order_tips(false, 0);
+    printf("Insert order id................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
@@ -1188,7 +1430,7 @@ void run_as_customer(char *username, char *customer_code, bool is_private, bool 
 
     if (first_access)
     {
-        choice = multi_choice("Do you wanna insert a contact?", "yn", 2);
+        choice = multi_choice("Do you wanna insert a contact......?", "yn", 2);
         if (choice == 'y')
         {
             add_contact(true, false);
