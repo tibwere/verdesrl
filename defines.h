@@ -44,5 +44,5 @@ void run_as_chief_of_staff(char *username);
 bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask);
 void change_password(char *username);
 void search_species(void); 
-void species_tips(unsigned int dots);
+void species_tips(bool only_flowery, unsigned int dots);
 int format_prompt(char *dest, size_t length, const char *src, unsigned int dots);

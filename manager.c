@@ -22,6 +22,65 @@ typedef struct insert_species_sp_no_params
 static char curr_user[BUFFSIZE_L];
 
 
+static bool attempt_show_colors(unsigned int species_code)
+{
+   	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[1];
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call visualizza_colorazioni(?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[0].buffer = &species_code;
+	param[0].buffer_length = sizeof(species_code);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(false);	
+    }
+
+    if (!dump_result_set(stmt, "\nColors available for selected species:", 0)) 
+    {
+        CLOSEANDRET(false);
+    }
+    
+	mysql_stmt_close(stmt);
+	return true;  
+}
+
+static void colors_tips(unsigned int species_code, unsigned int dots)
+{
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+  
+    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of available colors", dots);
+
+    choice = multi_choice(prompt, "yn", 2);
+    if (choice == 'y')
+    {
+        if (!attempt_show_colors(species_code))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    }
+}
+
 static int check_price(char *inserted_price, char *strerror, size_t strerror_length)
 {
     regex_t reg;
@@ -275,10 +334,10 @@ static void remove_a_species(void)
 
     init_screen(false);
 
-    printf("*** Finalize an order ***\n");
+    printf("*** Remove a species ***\n");
 
-    species_tips(0);
-    printf("Insert species code.............................................: ");
+    species_tips(false, 0);
+    printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
@@ -351,19 +410,22 @@ static void add_coloring(void)
     init_screen(false);
 
     printf("*** Add a coloring for a flowering species ***\n");
-    printf("Insert species code.............: ");
+
+    species_tips(true, 0);
+    printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert coloring for this species: ");
+    colors_tips(species_code, 13);
+    printf("Insert coloring for this species.................................: ");
     get_input(BUFFSIZE_S, coloring, false, true);
 
     putchar('\n');
 
     if (attempt_add_coloring(species_code, coloring))
-        printf("Coloring \"%s\" for %010u succesfully added\n", coloring, species_code);
+        printf("\nColoring \"%s\" for %010u succesfully added\n", coloring, species_code);
     else
-        printf("Operation failed\n");
+        printf("\nOperation failed\n");
         
     printf("Press enter key to get back to menu ...\n");
     getchar();   
@@ -440,11 +502,14 @@ static void remove_coloring(void)
     init_screen(false);
 
     printf("*** Remove a coloring from a flowering species ***\n");
-    printf("Insert species code..........: ");
+
+    species_tips(true, 0);
+    printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert coloring to be removed: ");
+    colors_tips(species_code, 13);
+    printf("Insert coloring to be removed....................................: ");
     get_input(BUFFSIZE_S, coloring, false, true);
 
     putchar('\n');
@@ -537,12 +602,13 @@ static void change_price(void)
 
     printf("*** Change the price of a species ***\n");
 
-    printf("Insert species code....: ");
+    species_tips(false, 0);
+    printf("Insert species code.............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
 insert_price:
-    printf("Insert price (#####.##): ");
+    printf("Insert price (#####.##).........................................: ");
     get_input(BUFFSIZE_XS, price, false, true);
     ret = check_price(price, strerror, BUFFSIZE_XL);
 
@@ -667,7 +733,9 @@ static void report_species(void)
     init_screen(false);
 
     printf("*** View sales trend for a chosen species ***\n");
-    printf("Insert species code..........: ");
+
+    species_tips(false, 0);
+    printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 

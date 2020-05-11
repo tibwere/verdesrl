@@ -59,7 +59,7 @@ static bool attempt_report_orders_short(bool only_open)
 
 	param[1].buffer_type = MYSQL_TYPE_TINY; // IN var_status TINYINT
 	param[1].buffer = &(only_open);
-	param[1].buffer_length = sizeof(bool);
+	param[1].buffer_length = sizeof(only_open);
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
@@ -273,7 +273,7 @@ static void open_order(void)
     printf("Insert contact (default favourite one)...........................: ");
     get_input(BUFFSIZE_XL, params.contact, false, false);
 
-    species_tips(0);
+    species_tips(false, 0);
     printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     params.species = strtol(buffer_for_integer, NULL, 10);
@@ -431,7 +431,7 @@ static void exec_op_on_order(bool is_add)
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
-    species_tips(0);
+    species_tips(false, 0);
     printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);

@@ -459,16 +459,16 @@ int format_prompt(char *dest, size_t length, const char *src, unsigned int dots)
     return len + dots;
 }
 
-static bool attempt_search_species(char *name)
+static bool attempt_search_species(bool only_flowery, char *name)
 {
 	MYSQL_STMT *stmt;	
-	MYSQL_BIND param[1];
+	MYSQL_BIND param[2];
     char prompt[BUFFSIZE_L];
 
 	memset(param, 0, sizeof(param));
    	memset(prompt, 0, sizeof(prompt));
 
-	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?)", conn)) 
+	if(!setup_prepared_stmt(&stmt, "call visualizza_dettagli_specie(?, ?)", conn)) 
     {
 		print_stmt_error(stmt, "Unable to initialize the statement\n");
         return false;
@@ -477,6 +477,10 @@ static bool attempt_search_species(char *name)
 	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome_comune	VARCHAR(64)
 	param[0].buffer = name;
 	param[0].buffer_length = strlen(name);
+
+	param[1].buffer_type = MYSQL_TYPE_TINY; // IN var_status TINYINT
+	param[1].buffer = &(only_flowery);
+	param[1].buffer_length = sizeof(only_flowery);
 
 	if (mysql_stmt_bind_param(stmt, param) != 0) 
 	{ 
@@ -504,7 +508,7 @@ static bool attempt_search_species(char *name)
 	return true;
 }
 
-void species_tips(unsigned int dots)
+void species_tips(bool only_flowery, unsigned int dots)
 {
     char spec_name[BUFFSIZE_M];
     char prompt[BUFFSIZE_XL];
@@ -522,7 +526,7 @@ void species_tips(unsigned int dots)
     {
         printf("\nInsert the name to filter on (default all).......................: ");   
         get_input(BUFFSIZE_M, spec_name, false, false);
-        if (!attempt_search_species(spec_name))
+        if (!attempt_search_species(only_flowery, spec_name))
             printf("Operation failed\n");
 
         putchar('\n');
@@ -543,7 +547,7 @@ void search_species(void)
 
     putchar('\n');
 
-    if (!attempt_search_species(name))
+    if (!attempt_search_species(false, name))
         printf("Operation failed\n");
         
     printf("\nPress enter key to get back to menu ...\n");
