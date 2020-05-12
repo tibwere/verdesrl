@@ -327,16 +327,26 @@ static int attempt_remove_species(unsigned int species_code)
 static void remove_a_species(void)
 {
     char buffer_for_integer[BUFFSIZE_XS];
+    char spec_name[BUFFSIZE_M];
     unsigned int species_code;
     int ret;
 
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
     printf("*** Remove a species ***\n");
 
-    species_tips(false, 0);
+    if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
+    {
+        printf("\nInsert the name to filter on (default all).......................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(false, spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');        
+    }
     printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
@@ -403,21 +413,31 @@ static void add_coloring(void)
     unsigned int species_code;
     char coloring[BUFFSIZE_S];
     char buffer_for_integer[BUFFSIZE_XS];
+    char spec_name[BUFFSIZE_M];
 
     memset(coloring, 0, sizeof(coloring));
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
     printf("*** Add a coloring for a flowering species ***\n");
 
-    species_tips(true, 0);
-    printf("Insert species code..............................................: ");
+    if (ask_for_tips("Do you wanna search flowery species by name to find the right code", 0))
+    {
+        printf("\nInsert the name to filter on (default all)...............................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(true, spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');        
+    }
+    printf("Insert species code......................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    colors_tips(species_code, 13);
-    printf("Insert coloring for this species.................................: ");
+    colors_tips(species_code, 21);
+    printf("Insert coloring for this species.........................................: ");
     get_input(BUFFSIZE_S, coloring, false, true);
 
     putchar('\n');
@@ -494,22 +514,38 @@ static void remove_coloring(void)
     unsigned int species_code;
     char coloring[BUFFSIZE_S];
     char buffer_for_integer[BUFFSIZE_XS];
+    char spec_name[BUFFSIZE_M];
     int ret;
 
     memset(coloring, 0, sizeof(coloring));
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
     printf("*** Remove a coloring from a flowering species ***\n");
 
-    species_tips(true, 0);
-    printf("Insert species code..............................................: ");
+    if (ask_for_tips("Do you wanna search flowery species by name to find the right code", 0))
+    {
+        printf("\nInsert the name to filter on (default all)...............................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(true, spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');        
+    }
+    printf("Insert species code......................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    colors_tips(species_code, 13);
-    printf("Insert coloring to be removed....................................: ");
+    if (ask_for_tips("Do you wanna see a report of available colors", 21))
+    {
+        if (!attempt_show_colors(species_code))
+            printf("Operation failed\n");
+
+        putchar('\n');;        
+    }
+    printf("Insert coloring to be removed............................................: ");
     get_input(BUFFSIZE_S, coloring, false, true);
 
     putchar('\n');
@@ -588,6 +624,7 @@ static int attempt_change_price(unsigned int species_code, char *price)
 static void change_price(void)
 {
     char buffer_for_integer[BUFFSIZE_XS];
+    char spec_name[BUFFSIZE_M];
     char price[BUFFSIZE_XS];
     char strerror[BUFFSIZE_XL];
     unsigned int species_code;
@@ -596,13 +633,21 @@ static void change_price(void)
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
     memset(strerror, 0, sizeof(strerror));
     memset(price, 0, sizeof(price));
-
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
     printf("*** Change the price of a species ***\n");
 
-    species_tips(false, 0);
+    if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
+    {
+        printf("\nInsert the name to filter on (default all).......................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(false, spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');        
+    }
     printf("Insert species code.............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
@@ -727,14 +772,24 @@ static void report_species(void)
 {
     unsigned int species_code;
     char buffer_for_integer[BUFFSIZE_XS];
+    char spec_name[BUFFSIZE_M];
 
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
     printf("*** View sales trend for a chosen species ***\n");
 
-    species_tips(false, 0);
+    if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
+    {
+        printf("\nInsert the name to filter on (default all).......................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(false, spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');        
+    }
     printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);

@@ -38,6 +38,27 @@ typedef struct order_info
 static customer_info_t curr_customer;
 
 
+static void search_species(void) 
+{
+    char name[BUFFSIZE_M];
+
+    memset(name, 0, sizeof(name));
+
+    init_screen(false);
+
+    printf("*** Search species by name ***\n");
+    printf("Insert the name to filter on (default all): ");
+    get_input(BUFFSIZE_M, name, false, false);
+
+    putchar('\n');
+
+    if (!attempt_search_species(false, name))
+        printf("Operation failed\n");
+        
+    printf("\nPress enter key to get back to menu ...\n");
+    getchar();
+}
+
 static bool attempt_report_orders_short(bool only_open)
 {
 	MYSQL_STMT *stmt;	
@@ -118,51 +139,6 @@ static bool attempt_search_species_belonging_to_order(unsigned int order_id)
     
 	mysql_stmt_close(stmt);
 	return true;    
-}
-
-static void search_species_belonging_to_order(unsigned int order_id, unsigned int dots)
-{
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-
-    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a list of species belonging to selected order", dots);
-        
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        if (!attempt_search_species_belonging_to_order(order_id))
-            printf("Operation failed\n");
-
-        putchar('\n');
-    }
-}
-
-static void order_tips(bool only_open, unsigned int dots)
-{
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-
-    if (only_open)
-        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your open orders", dots);
-    else    
-        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your orders", dots);
-
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        if (!attempt_report_orders_short(only_open))
-            printf("Operation failed\n");
-
-        putchar('\n');
-    }
 }
 
 static unsigned int attempt_open_order(order_sp_params_t *input)
@@ -258,9 +234,12 @@ static void open_order(void)
     order_sp_params_t params;
     char buffer_for_integer[BUFFSIZE_XS];
     unsigned int order_id;
+    char spec_name[BUFFSIZE_M];
+
 
     memset(&params, 0, sizeof(params));
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
@@ -273,7 +252,15 @@ static void open_order(void)
     printf("Insert contact (default favourite one)...........................: ");
     get_input(BUFFSIZE_XL, params.contact, false, false);
 
-    species_tips(false, 0);
+    if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
+    {
+        printf("\nInsert the name to filter on (default all).......................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        if (!attempt_search_species(false, spec_name))
+            printf("Operation failed\n");
+
+        putchar('\n');        
+    }
     printf("Insert species code..............................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     params.species = strtol(buffer_for_integer, NULL, 10);
@@ -409,12 +396,14 @@ static int attempt_to_modify_order(unsigned int order_id, unsigned int species_c
 static void exec_op_on_order(bool is_add)
 {
     char buffer_for_integer[BUFFSIZE_XS];
+    char spec_name[BUFFSIZE_M];
     unsigned int order_id;
     unsigned int species_code;
     unsigned int quantity;
     int ret;
 
     memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(spec_name, 0, sizeof(spec_name));
 
     init_screen(false);
 
@@ -424,19 +413,48 @@ static void exec_op_on_order(bool is_add)
         printf("*** Change the number of plants belonging to a species in an order ***\n");
 
 
-    printf("Customer code....................................................: %s\n", curr_customer.code);
+    printf("Customer code....................................................%s: %s\n", (is_add) ? "" : "....", curr_customer.code);
 
-    order_tips(true, 13);    
-    printf("Insert order id..................................................: ");
+    if (ask_for_tips("Do you wanna see a report of your open orders", (is_add) ? 13 : 17))
+    {
+        if (!attempt_report_orders_short(true))
+            printf("Operation failed\n");
+
+        putchar('\n');    
+    }  
+
+    printf("Insert order id..................................................%s: ", (is_add) ? "" : "....");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
-    species_tips(false, 0);
-    printf("Insert species code..............................................: ");
+    if (is_add) 
+    {
+        if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
+        {
+            printf("\nInsert the name to filter on (default all).......................: ");   
+            get_input(BUFFSIZE_M, spec_name, false, false);
+            if (!attempt_search_species(false, spec_name))
+                printf("Operation failed\n");
+
+            putchar('\n');        
+        }
+    }
+    else
+    {
+        if (ask_for_tips("Do you wanna see a list of species belonging to selected order", 0))
+        {
+            if (!attempt_search_species_belonging_to_order(order_id))
+                printf("Operation failed\n");
+
+            putchar('\n');   
+        }
+    }
+
+    printf("Insert species code..............................................%s: ", (is_add) ? "" : "....");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    printf("Insert relative quantity.........................................: ");
+    printf("Insert relative quantity.........................................%s: ", (is_add) ? "" : "....");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     quantity = strtol(buffer_for_integer, NULL, 10);
 
@@ -548,12 +566,26 @@ static void remove_spec_from_order(void)
     printf("*** Remove a species from an order not closed yet ***\n");
     printf("Customer code........................................................: %s\n", curr_customer.code);
     
-    order_tips(true, 17);
+    if (ask_for_tips("Do you wanna see a report of your open orders", 17))
+    {
+        if (!attempt_report_orders_short(true))
+            printf("Operation failed\n");
+
+        putchar('\n');    
+    }  
+
     printf("Insert order id......................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
 
-    search_species_belonging_to_order(order_id, 0);
+    if (ask_for_tips("Do you wanna see a list of species belonging to selected order", 0))
+    {
+        if (!attempt_search_species_belonging_to_order(order_id))
+            printf("Operation failed\n");
+
+        putchar('\n');   
+    }  
+
     printf("Insert species code..................................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
@@ -629,8 +661,15 @@ static void finalize_order(void)
 
     printf("*** Finalize an order ***\n");
     printf("Customer code.......................................: %s\n", curr_customer.code);
+    
+    if (ask_for_tips("Do you wanna see a report of your open orders", 0))
+    {
+        if (!attempt_report_orders_short(true))
+            printf("Operation failed\n");
 
-    order_tips(true, 0);
+        putchar('\n');    
+    } 
+    
     printf("Insert order id.....................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);
@@ -764,30 +803,6 @@ static bool attempt_show_contact_list(bool is_customer)
 	return true;       
 }
 
-static void show_contact_list(bool is_customer, unsigned int dots)
-{
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-
-    if (is_customer)
-        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your contacts", dots);
-    else    
-        format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of your referent contacts", dots);
-
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        if (!attempt_show_contact_list(is_customer))
-            printf("Operation failed\n");
-
-        putchar('\n');
-    }
-}
-
 static bool attempt_to_modify_contact_list(char *contact, bool is_customer, bool to_delete)
 {
     char sp_str[BUFFSIZE_L];
@@ -845,8 +860,10 @@ static bool attempt_to_modify_contact_list(char *contact, bool is_customer, bool
 static void modify_contact_list(bool is_customer, bool to_delete)
 {
     char contact[BUFFSIZE_XL];
+    char message[BUFFSIZE_L];
 
     memset(contact, 0, sizeof(contact));
+    memset(message, 0, sizeof(message));
 
     init_screen(false);
     
@@ -859,7 +876,15 @@ static void modify_contact_list(bool is_customer, bool to_delete)
     
     printf("%s code....................................: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
 
-    show_contact_list(is_customer, 0);
+    snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %s contacts", (is_customer) ? "" : "referent");
+
+    if (ask_for_tips(message, 0))
+    {
+        if (!attempt_show_contact_list(is_customer))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    } 
     printf("Insert contact.............................: ");
     get_input(BUFFSIZE_XL, contact, false, true);
 
@@ -929,17 +954,27 @@ static void add_contact(bool is_customer, bool show_prompt)
 {
     char contact[BUFFSIZE_XL];
     char type[BUFFSIZE_XS];
+    char message[BUFFSIZE_L];
     char choice;
 
     memset(contact, 0, sizeof(contact));
     memset(type, 0, sizeof(type));
+    memset(message, 0, sizeof(message));
 
     init_screen(false);
 
     printf("*** Add a contact to your %s list ***\n", (is_customer) ? "" : "referent");
     printf("%s code....................................: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
 
-    show_contact_list(is_customer, 0);
+    snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %s contacts", (is_customer) ? "" : "referent");
+
+    if (ask_for_tips(message, 0))
+    {
+        if (!attempt_show_contact_list(is_customer))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    } 
     printf("Insert new contact...............................: ");
     get_input(BUFFSIZE_XL, contact, false, true);
 
@@ -1122,7 +1157,13 @@ static void report_order(void)
     printf("*** View order details ***\n");
     printf("Customer code..................................: %s\n", curr_customer.code);
 
-    order_tips(false, 0);
+    if (ask_for_tips("Do you wanna see a report of your orders", 0))
+    {
+        if (!attempt_report_orders_short(false))
+            printf("Operation failed\n");
+
+        putchar('\n');    
+    } 
     printf("Insert order id................................: ");
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     order_id = strtol(buffer_for_integer, NULL, 10);

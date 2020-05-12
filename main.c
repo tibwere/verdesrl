@@ -459,7 +459,47 @@ int format_prompt(char *dest, size_t length, const char *src, unsigned int dots)
     return len + dots;
 }
 
-static bool attempt_search_species(bool only_flowery, char *name)
+bool ask_for_tips(const char *message, unsigned int dots)
+{
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+
+    format_prompt(prompt, BUFFSIZE_XL, message, dots);
+
+    choice = multi_choice(prompt, "yn", 2);
+	return (choice == 'y');
+}
+
+void species_tips(unsigned int dots)
+{
+    char spec_name[BUFFSIZE_M];
+    char prompt[BUFFSIZE_XL];
+    char choice;
+    
+    memset(spec_name, 0, sizeof(spec_name));
+    memset(prompt, 0, sizeof(prompt));
+
+    putchar('\n');
+
+    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna search species by name to find the right code", dots);
+
+    choice = multi_choice(prompt, "yn", 2);
+    if (choice == 'y')
+    {
+        printf("\nInsert the name to filter on (default all).......................: ");   
+        get_input(BUFFSIZE_M, spec_name, false, false);
+        //if (!attempt_search_species(spec_name))
+        //    printf("Operation failed\n");
+
+        putchar('\n');
+    }
+}
+
+bool attempt_search_species(bool only_flowery, char *name)
 {
 	MYSQL_STMT *stmt;	
 	MYSQL_BIND param[2];
@@ -506,50 +546,4 @@ static bool attempt_search_species(bool only_flowery, char *name)
     
 	mysql_stmt_close(stmt);
 	return true;
-}
-
-void species_tips(bool only_flowery, unsigned int dots)
-{
-    char spec_name[BUFFSIZE_M];
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(spec_name, 0, sizeof(spec_name));
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-
-    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna search species by name to find the right code", dots);
-
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        printf("\nInsert the name to filter on (default all).......................: ");   
-        get_input(BUFFSIZE_M, spec_name, false, false);
-        if (!attempt_search_species(only_flowery, spec_name))
-            printf("Operation failed\n");
-
-        putchar('\n');
-    }
-}
-
-void search_species(void) 
-{
-    char name[BUFFSIZE_M];
-
-    memset(name, 0, sizeof(name));
-
-    init_screen(false);
-
-    printf("*** Search species by name ***\n");
-    printf("Insert the name to filter on (default all): ");
-    get_input(BUFFSIZE_M, name, false, false);
-
-    putchar('\n');
-
-    if (!attempt_search_species(false, name))
-        printf("Operation failed\n");
-        
-    printf("\nPress enter key to get back to menu ...\n");
-    getchar();
 }
