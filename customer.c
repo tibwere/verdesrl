@@ -1288,16 +1288,16 @@ static void main_menu(void)
             printf("*** What do you wanna do? ***\n\n");
             printf("1) Orders management\n");
             printf("2) Profile management\n");
-            printf("3) Change password\n");
+            printf("p) Change password\n");
             printf("q) Quit\n");
 
-            choice = multi_choice("Pick an option", "123q", 4);
+            choice = multi_choice("Pick an option", "12pq", 4);
 
             switch (choice)
             {
                 case '1': order_management_menu(); break;
                 case '2': profile_management_menu(); break;
-                case '3': change_password(curr_customer.username); break;
+                case 'p': change_password(curr_customer.username); break;
                 case 'q': printf("Bye bye!\n\n\n"); return;
                 default:
                     fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

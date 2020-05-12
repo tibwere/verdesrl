@@ -820,10 +820,10 @@ void run_as_manager(char *username)
         printf("4) Remove a coloring from a flowering species list\n");
         printf("5) Change the price of a species\n");
         printf("6) View sales trend for a chosen species\n");
-        printf("7) Change password\n");
+        printf("p) Change password\n");
         printf("q) Quit\n");
 
-        choice = multi_choice("Pick an option", "1234567q", 8);
+        choice = multi_choice("Pick an option", "123456pq", 8);
 
         switch (choice)
         {
@@ -833,7 +833,7 @@ void run_as_manager(char *username)
             case '4': remove_coloring(); break;
             case '5': change_price(); break;
             case '6': report_species(); break;
-            case '7': change_password(curr_user); break;
+            case 'p': change_password(curr_user); break;
             case 'q': printf("Bye bye!\n\n\n"); return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

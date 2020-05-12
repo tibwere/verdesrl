@@ -135,16 +135,16 @@ void run_as_chief_of_staff(char *username)
         init_screen(true);
         printf("Welcome %s\n\n", curr_user);
         printf("*** What do you wanna do? ***\n\n");
-        printf("1) Add an employee account\n");
-        printf("2) Change password\n");
+        printf("a) Add an employee account\n");
+        printf("p) Change password\n");
         printf("q) Quit\n");
 
-        choice = multi_choice("Pick an option", "12q", 3);
+        choice = multi_choice("Pick an option", "apq", 3);
 
         switch (choice)
         {
-            case '1': add_employee_account(); break;
-            case '2': change_password(curr_user); break;
+            case 'a': add_employee_account(); break;
+            case 'p': change_password(curr_user); break;
             case 'q': printf("Bye bye!\n\n\n"); return;
             default:
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
