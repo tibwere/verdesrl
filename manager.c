@@ -7,7 +7,7 @@
 #include <time.h>
 #include "defines.h"
 
-typedef struct insert_species_sp_no_params 
+typedef struct insert_species_sp_params 
 {
     char common_name[BUFFSIZE_M];
     char latin_name[BUFFSIZE_M];
@@ -16,7 +16,7 @@ typedef struct insert_species_sp_no_params
     signed char exotic;
     unsigned int stock;
     char price[BUFFSIZE_XS];
- } insert_species_sp_no_params_t;
+ } insert_species_sp_params_t;
 
 
 static char curr_user[BUFFSIZE_L];
@@ -93,7 +93,7 @@ static int check_price(char *inserted_price, char *strerror, size_t strerror_len
     }
 }
 
-static unsigned int attempt_insert_species(insert_species_sp_no_params_t *input)
+static unsigned int attempt_insert_species(insert_species_sp_params_t *input)
 {
 	MYSQL_STMT *stmt;
 	MYSQL_BIND param[8];
@@ -182,7 +182,7 @@ static unsigned int attempt_insert_species(insert_species_sp_no_params_t *input)
 
 static void insert_a_species(void)
 {
-    insert_species_sp_no_params_t params;
+    insert_species_sp_params_t params;
     char buffer_for_integer[BUFFSIZE_XS];
     char strerror[BUFFSIZE_XL];
     unsigned int species_code;
