@@ -963,10 +963,13 @@ static void add_contact(bool is_customer, bool show_prompt)
 
     init_screen(false);
 
-    printf("*** Add a contact to your %s list ***\n", (is_customer) ? "" : "referent");
-    printf("%s code....................................: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
+    printf("*** Add a contact to your %slist ***\n", (is_customer) ? "" : "referent ");
+    printf("%s code....................................%s: %s\n", 
+        (is_customer) ? "Customer" : "Referent", 
+        (is_customer) ? "": ".........",
+        curr_customer.code);
 
-    snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %s contacts", (is_customer) ? "" : "referent");
+    snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %scontacts", (is_customer) ? "" : "referent ");
 
     if (ask_for_tips(message, 0))
     {
@@ -975,10 +978,11 @@ static void add_contact(bool is_customer, bool show_prompt)
 
         putchar('\n');
     } 
-    printf("Insert new contact...............................: ");
+    printf("Insert new contact...............................%s: ", (is_customer) ? "": ".........");
     get_input(BUFFSIZE_XL, contact, false, true);
 
-    choice = multi_choice("Select type [m]obile, [l]andline, [e]mail", "mle", 3);
+    snprintf(message, BUFFSIZE_L, "Select type [m]obile, [l]andline, [e]mail%s", (is_customer) ? "": ".........");
+    choice = multi_choice(message, "mle", 3);
 
     switch (choice)
     {
