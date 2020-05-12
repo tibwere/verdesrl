@@ -60,27 +60,6 @@ static bool attempt_show_colors(unsigned int species_code)
 	return true;  
 }
 
-static void colors_tips(unsigned int species_code, unsigned int dots)
-{
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-  
-    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna see a report of available colors", dots);
-
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        if (!attempt_show_colors(species_code))
-            printf("Operation failed\n");
-
-        putchar('\n');
-    }
-}
-
 static int check_price(char *inserted_price, char *strerror, size_t strerror_length)
 {
     regex_t reg;
@@ -436,7 +415,13 @@ static void add_coloring(void)
     get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
     species_code = strtol(buffer_for_integer, NULL, 10);
 
-    colors_tips(species_code, 21);
+    if (ask_for_tips("Do you wanna see a report of available colors", 21))
+    {
+        if (!attempt_show_colors(species_code))
+            printf("Operation failed\n");
+
+        putchar('\n');;        
+    }
     printf("Insert coloring for this species.........................................: ");
     get_input(BUFFSIZE_S, coloring, false, true);
 

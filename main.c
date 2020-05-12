@@ -474,31 +474,6 @@ bool ask_for_tips(const char *message, unsigned int dots)
 	return (choice == 'y');
 }
 
-void species_tips(unsigned int dots)
-{
-    char spec_name[BUFFSIZE_M];
-    char prompt[BUFFSIZE_XL];
-    char choice;
-    
-    memset(spec_name, 0, sizeof(spec_name));
-    memset(prompt, 0, sizeof(prompt));
-
-    putchar('\n');
-
-    format_prompt(prompt, BUFFSIZE_XL, "Do you wanna search species by name to find the right code", dots);
-
-    choice = multi_choice(prompt, "yn", 2);
-    if (choice == 'y')
-    {
-        printf("\nInsert the name to filter on (default all).......................: ");   
-        get_input(BUFFSIZE_M, spec_name, false, false);
-        //if (!attempt_search_species(spec_name))
-        //    printf("Operation failed\n");
-
-        putchar('\n');
-    }
-}
-
 bool attempt_search_species(bool only_flowery, char *name)
 {
 	MYSQL_STMT *stmt;	
