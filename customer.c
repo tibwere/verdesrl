@@ -874,7 +874,10 @@ static void modify_contact_list(bool is_customer, bool to_delete)
             (is_customer) ? "your" : "",
             (is_customer) ? "" : "of your referent");
     
-    printf("%s code....................................: %s\n", (is_customer) ? "Customer" : "Referent", curr_customer.code);
+    printf("%s code....................................%s: %s\n", 
+        (is_customer) ? "Customer" : "Referent", 
+        (is_customer) ? "": ".........",
+        curr_customer.code);    
 
     snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %s contacts", (is_customer) ? "" : "referent");
 
@@ -885,7 +888,8 @@ static void modify_contact_list(bool is_customer, bool to_delete)
 
         putchar('\n');
     } 
-    printf("Insert contact.............................: ");
+
+    printf("Insert contact...................................%s: ", (is_customer) ? "": ".........");
     get_input(BUFFSIZE_XL, contact, false, true);
 
     putchar('\n');

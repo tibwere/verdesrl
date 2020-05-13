@@ -270,6 +270,10 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 						else
 							printf(" %-*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
 						break;
+					
+					case MYSQL_TYPE_LONGLONG:
+						printf(" %-*lld |", (int)fields[i].max_length, *(long long int *)rs_bind[i].buffer);
+						break;
 
 					default:
 					    printf("ERROR: Unhandled type (%d)\n", rs_bind[i].buffer_type);

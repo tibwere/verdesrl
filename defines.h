@@ -13,6 +13,8 @@
 
 /* bitmask: 00000001 (prima colonna dell'output) */
 #define LEADING_ZERO_BITMASK_IDX_0 1 
+#define LEADING_ZERO_BITMASK_IDX_1 2 
+#define LEADING_ZERO_BITMASK_IDX_2 4 
 
 #define CLOSEANDRET(x) \
             mysql_stmt_close(stmt); \
