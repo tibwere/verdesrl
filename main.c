@@ -308,7 +308,7 @@ static bool login_manager(void)
 		case MNG: run_as_manager(cred.username); break;
 		case CPP: run_as_chief_of_staff(cred.username); break;
 		case ADM: run_as_warehouse_clerk(cred.username); break;
-		case OPP: printf("Sorry not implemented yet!\n"); break;
+		case OPP: run_as_order_processor(cred.username); break;
 		case ERR: printf("Login failed!\n"); break;
 		default: 
 			fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);

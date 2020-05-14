@@ -38,6 +38,45 @@ typedef struct order_info
 static customer_info_t curr_customer;
 
 
+static bool attempt_search_species_belonging_to_order(unsigned int order_id)
+{
+	MYSQL_STMT *stmt;	
+	MYSQL_BIND param[1];
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call visualizza_specie_appartenenti_ad_ordine(?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
+	param[0].buffer = &order_id;
+	param[0].buffer_length = sizeof(order_id);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false);
+	}
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+        CLOSEANDRET(false);	
+    }
+
+    if (!dump_result_set(stmt, "Species belonging to selected order:", LEADING_ZERO_BITMASK_IDX_0)) 
+    {
+        CLOSEANDRET(false);
+    }
+    
+	mysql_stmt_close(stmt);
+	return true;    
+}
+
+
 static void search_species(void) 
 {
     char name[BUFFSIZE_M];
@@ -101,44 +140,6 @@ static bool attempt_report_orders_short(bool only_open)
     
 	mysql_stmt_close(stmt);
 	return true;
-}
-
-static bool attempt_search_species_belonging_to_order(unsigned int order_id)
-{
-	MYSQL_STMT *stmt;	
-	MYSQL_BIND param[1];
-
-	memset(param, 0, sizeof(param));
-
-	if(!setup_prepared_stmt(&stmt, "call visualizza_specie_appartenenti_ad_ordine(?)", conn)) 
-    {
-		print_stmt_error(stmt, "Unable to initialize the statement\n");
-        return false;
-	}
-	
-	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_ordine INT
-	param[0].buffer = &order_id;
-	param[0].buffer_length = sizeof(order_id);
-
-	if (mysql_stmt_bind_param(stmt, param) != 0) 
-	{ 
-		print_stmt_error(stmt, "Could not bind parameters for the statement");
-        CLOSEANDRET(false);
-	}
-
-	if (mysql_stmt_execute(stmt) != 0) 
-	{
-		print_stmt_error(stmt, "Could not execute the statement");
-        CLOSEANDRET(false);	
-    }
-
-    if (!dump_result_set(stmt, "Species belonging to selected order:", LEADING_ZERO_BITMASK_IDX_0)) 
-    {
-        CLOSEANDRET(false);
-    }
-    
-	mysql_stmt_close(stmt);
-	return true;    
 }
 
 static unsigned int attempt_open_order(order_sp_params_t *input)

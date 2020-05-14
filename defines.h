@@ -44,6 +44,7 @@ void run_as_customer(char *username, char *customer_code, bool is_private, bool 
 void run_as_manager(char *username);
 void run_as_chief_of_staff(char *username);
 void run_as_warehouse_clerk(char *username);
+void run_as_order_processor(char *username);
 bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask);
 void change_password(char *username);
 void species_tips(unsigned int dots);
