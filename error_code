@@ -1,0 +1,25 @@
+45000:  Codice non corrispondente alla tipologia cliente scelta
+45001:  Codice cliente malformattato
+45002:  Contatto preferito non impostato
+45003:  Lunghezza minima password
+45004:  Username/Password non possono contenere spazi
+45005:  Solo i proprietari possono modificare un'ordine
+45006:  Quantità selezionata maggiore della giacenza
+45007:  Impossibile modificare un'ordine già finalizzato
+45008:  Specie già appartenente all'ordine
+45009:  Cliente/Referente non possessori del contatto
+45010:  Contatto già inserito
+45011:  Utente già iscritto al sistema
+45012:  Contatto non eliminabile poichè associato ad un ordine
+45013:  Contatto non registrabile come preferito perchè non posseduto ancora
+45014:  Specie inesistente
+45015:  Quantità eccedente a quella rimasta da processare
+45016:  Ordine inesistente
+45017:  Le password non corrispondono 
+45018:  Disponibilità fornitura già inserita
+45019:  Una specie verde non possiede colorazioni
+45020:  Specie non appartenente all'ordine
+45021:  Specie già in archivio
+45022:  Tipologia di specie inserita non valida
+45023:  Codice fiscale per fornitore non valido
+45024:  Specie richiesta non disponibile
