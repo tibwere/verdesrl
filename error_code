@@ -27,3 +27,7 @@
 45026:  Specie o pacco non esistenti
 45027:  Specie o ordine non esistenti
 45028:  Utente inesistente
+45029:  Specie non rimovibile poichè associata ad un ordine
+45030:  Colore gia presente per la specie selezionata
+45031:  Indirizzo già inserito
+45032:  Fornitore inesistente

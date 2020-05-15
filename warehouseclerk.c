@@ -591,6 +591,92 @@ static void report_stock(void)
     getchar();
 }
 
+static int attempt_add_address(unsigned int supplier_code, char *address)
+{
+    MYSQL_STMT *stmt;	
+	MYSQL_BIND param[2];
+
+	memset(param, 0, sizeof(param));
+
+	if(!setup_prepared_stmt(&stmt, "call aggiungi_indirizzo_fornitore(?, ?)", conn)) 
+    {
+		print_stmt_error(stmt, "Unable to initialize the statement\n");
+		return false;
+	}
+	
+	param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_fornitore INT
+	param[0].buffer = &supplier_code;
+	param[0].buffer_length = sizeof(supplier_code);
+
+	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_indirizzo VARCHAR(64)
+	param[1].buffer = address;
+	param[1].buffer_length = strlen(address);
+
+	if (mysql_stmt_bind_param(stmt, param) != 0) 
+	{ 
+		print_stmt_error(stmt, "Could not bind parameters for the statement");
+        CLOSEANDRET(false); 	
+    }
+
+	if (mysql_stmt_execute(stmt) != 0) 
+	{
+		print_stmt_error(stmt, "Could not execute the statement");
+    	CLOSEANDRET(false); 
+	}
+
+    if (!dump_result_set(stmt, "\nUpdated addresses list:", 0)) 
+    {
+        CLOSEANDRET(false);
+    }
+
+	mysql_stmt_close(stmt);
+	return true;  
+}
+
+static void add_address(void)
+{
+    unsigned int sup_code;
+    char address[BUFFSIZE_M];
+    char buffer_for_integer[BUFFSIZE_XS];
+    char sup_name[BUFFSIZE_M];
+
+    memset(address, 0, sizeof(address));
+    memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
+    memset(sup_name, 0, sizeof(sup_name));
+
+    init_screen(false);
+
+    printf("*** Add a address for a supplier ***\n");
+
+    if (ask_for_tips("Do you wanna see a list of available suppliers", 0))
+    {
+        printf("\nInsert the name to filter on (default all).....................: "); 
+        get_input(BUFFSIZE_S, sup_name, false, false);
+        if (!attempt_search_suppliers(sup_name))
+            printf("Operation failed\n");
+
+        putchar('\n');
+    }
+
+    printf("Insert supplier code.................................: ");
+    get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
+    sup_code = strtol(buffer_for_integer, NULL, 10);
+
+
+    printf("Insert address.......................................: ");
+    get_input(BUFFSIZE_S, address, false, true);
+
+    putchar('\n');
+
+    if (attempt_add_address(sup_code, address))
+        printf("Address \"%s\" for %010u succesfully added\n", address, sup_code);
+    else
+        printf("\nOperation failed\n");
+        
+    printf("Press enter key to get back to menu ...\n");
+    getchar();   
+}
+
 void run_as_warehouse_clerk(char *username)
 {
     config_t cnf;
@@ -618,22 +704,24 @@ void run_as_warehouse_clerk(char *username)
         printf("Welcome %s\n\n", curr_user);
         printf("*** What do you wanna do? ***\n\n");
         printf("1) Insert a new supplier\n");
-        printf("2) Add supply availability\n");
-        printf("3) Add supply request\n");
-        printf("4) View stock status for a species\n");
-        printf("5) View details of the species to be supplied\n");
+        printf("2) Add address for a supplier\n");
+        printf("3) Add supply availability\n");
+        printf("4) Add supply request\n");
+        printf("5) View stock status for a species\n");
+        printf("6) View details of the species to be supplied\n");
         printf("p) Change password\n");
         printf("q) Quit\n");
 
-        choice = multi_choice("Pick an option", "12345pq", 7);
+        choice = multi_choice("Pick an option", "123456pq", 8);
 
         switch (choice)
         {
             case '1': insert_new_supplier(); break;
-            case '2': add_supply_availability(); break;
-            case '3': add_supply_request(); break;
-            case '4': show_stock_status(); break;
-            case '5': report_stock(); break;
+            case '2': add_address(); break;
+            case '3': add_supply_availability(); break;
+            case '4': add_supply_request(); break;
+            case '5': show_stock_status(); break;
+            case '6': report_stock(); break;
             case 'p': change_password(curr_user); break;
             case 'q': printf("Bye bye!\n\n\n"); return;
             default:
