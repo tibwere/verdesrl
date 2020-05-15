@@ -47,7 +47,7 @@ static bool attempt_search_suppliers(char *name)
                 snprintf(prompt, BUFFSIZE_L, "\nSearch results:");
 
         if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -69,7 +69,7 @@ static bool attempt_select_available_species(unsigned int sup_code)
                 return false;
 
         if (!dump_result_set(stmt, "\nSearch results:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
         
 	mysql_stmt_close(stmt);
@@ -187,7 +187,7 @@ static bool attempt_add_supply_availability(unsigned int supplier_code, unsigned
                 return false;
 
         if (!dump_result_set(stmt, "\nUpdated list:", 0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -274,7 +274,7 @@ static bool attempt_add_supply_request(unsigned int supplier_code, unsigned int 
                 return false;
 
         if (!dump_result_set(stmt, "\nPendant request for selected species:", flags)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -351,7 +351,7 @@ static bool attempt_show_stock_status(unsigned int species_code)
                 return false;
 
         if (!dump_result_set(stmt, "\nResults for selected species:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -413,7 +413,7 @@ static bool attempt_report_stock(unsigned int range)
 	param[0].buffer = &range;
 	param[0].buffer_length = sizeof(range);
 	
-        if(!setup_prepared_stmt(&stmt, "call report_giacenza(?)", conn)) 
+        if(!exec_sp(&stmt, param, "call report_giacenza(?)")) 
                 return false;
 
 	do {
@@ -428,7 +428,7 @@ static bool attempt_report_stock(unsigned int range)
                         snprintf(prompt, BUFFSIZE_XL, "\nList of the 5 most frequently chosen suppliers:");
 
                 if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_IDX_0)) {
-                        CLOSEANDRET(false);
+                        CLOSE_AND_RETURN(false, stmt);
                 }
 
                 ++counter;
@@ -436,7 +436,7 @@ next:
 		status = mysql_stmt_next_result(stmt);
 		if (status > 0) {
                         print_stmt_error(stmt, "Unexpected condition");
-                        CLOSEANDRET(false);        
+                        CLOSE_AND_RETURN(false, stmt);       
                 }
 		
 	} while (status == 0);
@@ -484,11 +484,11 @@ static int attempt_add_address(unsigned int supplier_code, char *address)
 	param[1].buffer = address;
 	param[1].buffer_length = strlen(address);
 
-	if(!setup_prepared_stmt(&stmt, "call aggiungi_indirizzo_fornitore(?, ?)", conn)) 
+	if(!exec_sp(&stmt, param, "call aggiungi_indirizzo_fornitore(?, ?)")) 
                 return false;
 
         if (!dump_result_set(stmt, "\nUpdated addresses list:", 0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
 
 	mysql_stmt_close(stmt);

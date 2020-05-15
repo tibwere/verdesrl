@@ -37,7 +37,7 @@ static bool attempt_show_colors(unsigned int species_code)
                 return false;
 
         if (!dump_result_set(stmt, "\nColors available for selected species:", 0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -215,7 +215,7 @@ static int attempt_remove_species(unsigned int species_code)
 	param[1].buffer_length = sizeof(affected_rows);
 
         if (!exec_sp(&stmt, param, "call rimuovi_specie_di_pianta(?, ?)")) 
-	        return -1;
+                return -1;
 
 	param[0].buffer_type = MYSQL_TYPE_LONG; // OUT var_eliminazione_effettiva INT
 	param[0].buffer = &affected_rows;
@@ -289,7 +289,7 @@ static int attempt_add_coloring(unsigned int species_code, char *coloring)
 		return false;
 
         if (!dump_result_set(stmt, "\nUpdated coloring list:", 0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
 
 	mysql_stmt_close(stmt);
@@ -558,12 +558,12 @@ static bool attempt_report_species(unsigned int species_code)
 
                 if (i == 0) {
                         if (!dump_result_set(stmt, "\nSpecies info:", LEADING_ZERO_BITMASK_IDX_0)) {
-                                CLOSEANDRET(false);
+                                CLOSE_AND_RETURN(false, stmt);
                         }
                 } else {
                         snprintf(prompt, 2 * BUFFSIZE_XL, "\n\nSales details (year: %d):", (tm->tm_year + 1900));
                         if (!dump_result_set(stmt, prompt, 0)) {
-                                CLOSEANDRET(false);
+                                CLOSE_AND_RETURN(false, stmt);
                         }   
                 }
 
@@ -572,7 +572,7 @@ next:
 		status = mysql_stmt_next_result(stmt);
 		if (status > 0) {
                         print_stmt_error(stmt, "Unexpected condition");
-                        CLOSEANDRET(false);        
+                        CLOSE_AND_RETURN(false, stmt);        
                 }
 		
 	} while (status == 0);   

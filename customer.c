@@ -50,7 +50,7 @@ static bool attempt_search_species_belonging_to_order(unsigned int order_id)
                 return false;
 
         if (!dump_result_set(stmt, "Species belonging to selected order:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
 
         mysql_stmt_close(stmt);
@@ -97,7 +97,7 @@ static bool attempt_report_orders_short(bool only_open)
                 return false;
 
         if (!dump_result_set(stmt, "Open orders:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -597,7 +597,7 @@ static bool attempt_show_contact_list(bool is_customer)
                 return false;
 
         if (!dump_result_set(stmt, "\nContact list:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -710,7 +710,7 @@ static bool attempt_add_contact(char *contact, char *type, bool is_customer)
                 return false;
 
         if (!dump_result_set(stmt, "\nUpdated list:", 0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
         
         mysql_stmt_close(stmt);
@@ -821,7 +821,7 @@ static bool attempt_report_order(unsigned int order_id)
 		        goto next;
 
                 if (!dump_result_set(stmt, messages[i], flags[i])) {
-                        CLOSEANDRET(false);
+                        CLOSE_AND_RETURN(false, stmt);
                 }
 
                 ++i;
@@ -829,7 +829,7 @@ next:
 		status = mysql_stmt_next_result(stmt);
 		if (status > 0) {
                         print_stmt_error(stmt, "Unexpected condition");
-                        CLOSEANDRET(false);        
+                        CLOSE_AND_RETURN(false, stmt);        
                 }
 		
 	} while (status == 0);

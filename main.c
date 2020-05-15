@@ -364,7 +364,7 @@ bool attempt_search_species(bool only_flowery, char *name)
                 snprintf(prompt, BUFFSIZE_L, "\nSearch results:");
 
         if (!dump_result_set(stmt, prompt, LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
         
         mysql_stmt_close(stmt);
@@ -380,12 +380,12 @@ bool exec_sp(MYSQL_STMT **stmt_ptr, MYSQL_BIND *param, char *sp_name)
 
 	if (mysql_stmt_bind_param(*stmt_ptr, param) != 0) { 
 		print_stmt_error(*stmt_ptr, "Could not bind parameters for the statement");
-                //CLOSEANDRET(false, *stmt_ptr);
+                CLOSE_AND_RETURN(false, *stmt_ptr);
 	}
 
 	if (mysql_stmt_execute(*stmt_ptr) != 0) {
 		print_stmt_error(*stmt_ptr, "Could not execute the statement");
-                //CLOSEANDRET(false, *stmt_ptr);	
+                CLOSE_AND_RETURN(false, *stmt_ptr);	
         }
 
         return true;        
@@ -395,12 +395,12 @@ bool fetch_res_sp(MYSQL_STMT *stmt, MYSQL_BIND *param)
 {
         if(mysql_stmt_bind_result(stmt, param)) {
                 print_stmt_error(stmt, "Could not retrieve output parameter");
-                //CLOSEANDRET(false, stmt);
+                CLOSE_AND_RETURN(false, stmt);
         }
         
         if(mysql_stmt_fetch(stmt)) {
                 print_stmt_error(stmt, "Could not buffer results");
-                //CLOSEANDRET(false, stmt);
+                CLOSE_AND_RETURN(false, stmt);
         }
 
         return true;        

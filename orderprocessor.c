@@ -34,7 +34,7 @@ static bool attempt_search_species_belonging_to_order(unsigned int order_id)
 	}
 
         if (!dump_result_set(stmt, "Species belonging to selected order:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -56,7 +56,7 @@ static bool attempt_show_status(unsigned int order_id)
                 return false;
 
         if (!dump_result_set(stmt, "Order info:", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
     
 	mysql_stmt_close(stmt);
@@ -121,7 +121,7 @@ static bool attempt_report_packs(unsigned int order_id)
                 return false;
 
         if (!dump_result_set(stmt, "Processing details", LEADING_ZERO_BITMASK_IDX_0)) {
-                CLOSEANDRET(false);
+                CLOSE_AND_RETURN(false, stmt);
         }
 
 	mysql_stmt_close(stmt);

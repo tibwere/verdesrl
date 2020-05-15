@@ -16,9 +16,9 @@
 #define LEADING_ZERO_BITMASK_IDX_1 2 
 #define LEADING_ZERO_BITMASK_IDX_2 4 
 
-#define CLOSEANDRET(x) \
-	mysql_stmt_close(stmt); \
-	return (x);
+#define CLOSE_AND_RETURN(retval, obj) \
+	mysql_stmt_close(obj); \
+	return (retval);
 
 
 extern MYSQL *conn;
