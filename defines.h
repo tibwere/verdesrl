@@ -17,23 +17,23 @@
 #define LEADING_ZERO_BITMASK_IDX_2 4 
 
 #define CLOSEANDRET(x) \
-            mysql_stmt_close(stmt); \
-            return (x);
+	mysql_stmt_close(stmt); \
+	return (x);
 
 
 extern MYSQL *conn;
 
 
-typedef struct configuration 
-{
+struct configuration {
 	char host[BUFFSIZE_L];
 	char username[BUFFSIZE_L];
 	char password[BUFFSIZE_L];
 	unsigned int port;
 	char database[BUFFSIZE_L];
-} config_t;
+};
 
-bool parse_config(const char *path, config_t *conf, const char *delimiter); 
+
+bool parse_config(const char *path, struct configuration *conf, const char *delimiter); 
 void print_error(MYSQL *conn, char *message);
 size_t get_input(unsigned int length, char *string, bool hide, bool not_null);
 void init_screen(bool);
@@ -51,3 +51,5 @@ void species_tips(unsigned int dots);
 bool ask_for_tips(const char *message, unsigned int dots);
 int format_prompt(char *dest, size_t length, const char *src, unsigned int dots);
 bool attempt_search_species(bool only_flowery, char *name);
+bool exec_sp(MYSQL_STMT **stmt_ptr, MYSQL_BIND *param, char *sp_name);
+bool fetch_res_sp(MYSQL_STMT *stmt, MYSQL_BIND *param);

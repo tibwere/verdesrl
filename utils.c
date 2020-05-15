@@ -6,28 +6,25 @@
 
 
 void init_screen(bool title) 
-{ 
-    (title) ? system("clear && cat head") : system("clear"); 
+{
+	(title) ? system("clear && cat head") : system("clear"); 
 }
-
 
 void print_error(MYSQL *conn, char *message)
 {
 	fprintf(stderr, "%s\n", message);
-	if (conn != NULL)
-    {
-		fprintf(stderr, "Error %u (%s): %s\n",
-		    mysql_errno (conn), 
-            mysql_sqlstate(conn), 
-            mysql_error (conn));
+	if (conn != NULL) {
+		fprintf(stderr, "Error %u (%s): %s\n", 
+			mysql_errno (conn), 
+			mysql_sqlstate(conn), 
+			mysql_error (conn));
 	}
 }
 
 void print_stmt_error (MYSQL_STMT *stmt, char *message)
 {
 	fprintf (stderr, "%s\n", message);
-	if (stmt != NULL) 
-    {
+	if (stmt != NULL) {
 		fprintf(stderr, "Error %u (%s): %s\n",
 			mysql_stmt_errno (stmt),
 			mysql_stmt_sqlstate(stmt),
@@ -40,8 +37,7 @@ bool setup_prepared_stmt(MYSQL_STMT **stmt, char *statement, MYSQL *conn)
 	my_bool update_length = true;
 
 	*stmt = mysql_stmt_init(conn);
-	if (*stmt == NULL)
-	{
+	if (*stmt == NULL) {
 		print_error(conn, "Could not initialize statement handler");
 		return false;
 	}
@@ -83,8 +79,7 @@ static void dump_result_set_header(MYSQL_RES *res_set)
 
 	mysql_field_seek (res_set, 0);
 
-	for (i = 0; i < mysql_num_fields (res_set); ++i) 
-	{
+	for (i = 0; i < mysql_num_fields (res_set); ++i) {
 		field = mysql_fetch_field (res_set);
 		col_len = strlen(field->name);
 
@@ -99,8 +94,7 @@ static void dump_result_set_header(MYSQL_RES *res_set)
 	putchar('|');
 	mysql_field_seek (res_set, 0);
 	
-	for (i = 0; i < mysql_num_fields(res_set); ++i) 
-	{
+	for (i = 0; i < mysql_num_fields(res_set); ++i) {
 		field = mysql_fetch_field(res_set);
 		printf(" %-*s |", (int)field->max_length, field->name);
 	}
@@ -126,8 +120,7 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 	 * function, to allow to compute the actual max length of
 	 * the columns.
 	 */
-	if (mysql_stmt_store_result(stmt)) 
-	{
+	if (mysql_stmt_store_result(stmt)) {
 		fprintf(stderr, " mysql_stmt_execute(), 1 failed\n");
 		fprintf(stderr, " %s\n", mysql_stmt_error(stmt));
 		return false;
@@ -137,13 +130,11 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 	/* 0 if the result is only the final status packet */
 	num_fields = mysql_stmt_field_count(stmt);
 
-	if (num_fields > 0) 
-	{
+	if (num_fields > 0) {
 		/* there is a result set to fetch */
 		printf("%s\n", title);
 
-		if((rs_metadata = mysql_stmt_result_metadata(stmt)) == NULL) 
-		{
+		if((rs_metadata = mysql_stmt_result_metadata(stmt)) == NULL) {
 			print_stmt_error(stmt, "Unable to retrieve result metadata");
 			return false;
 		}		
@@ -153,8 +144,7 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 		fields = mysql_fetch_fields(rs_metadata);
 
 		rs_bind = (MYSQL_BIND *) malloc(sizeof (MYSQL_BIND) * num_fields);
-		if (!rs_bind) 
-		{
+		if (!rs_bind) {
 			print_stmt_error(stmt, "Cannot allocate output buffers");
 			return false;
 		}
@@ -162,40 +152,38 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 		memset(rs_bind, 0, sizeof (MYSQL_BIND) * num_fields);
 
 		/* set up and bind result set output buffers */
-		for (i = 0; i < num_fields; ++i) 
-		{
+		for (i = 0; i < num_fields; ++i) {
 			// Properly size the parameter buffer
-			switch(fields[i].type) 
-			{
-				case MYSQL_TYPE_DATE:
-				case MYSQL_TYPE_TIMESTAMP:
-				case MYSQL_TYPE_DATETIME:
-				case MYSQL_TYPE_TIME:
-					attr_size = sizeof(MYSQL_TIME);
-					break;
-				case MYSQL_TYPE_FLOAT:
-					attr_size = sizeof(float);
-					break;
-				case MYSQL_TYPE_DOUBLE:
-					attr_size = sizeof(double);
-					break;
-				case MYSQL_TYPE_TINY:
-					attr_size = sizeof(signed char);
-					break;
-				case MYSQL_TYPE_SHORT:
-				case MYSQL_TYPE_YEAR:
-					attr_size = sizeof(short int);
-					break;
-				case MYSQL_TYPE_LONG:
-				case MYSQL_TYPE_INT24:
-					attr_size = sizeof(int);
-					break;
-				case MYSQL_TYPE_LONGLONG:
-					attr_size = sizeof(int);
-					break;
-				default:
-					attr_size = fields[i].max_length;
-					break;
+			switch(fields[i].type) {
+			case MYSQL_TYPE_DATE:
+			case MYSQL_TYPE_TIMESTAMP:
+			case MYSQL_TYPE_DATETIME:
+			case MYSQL_TYPE_TIME:
+				attr_size = sizeof(MYSQL_TIME);
+				break;
+			case MYSQL_TYPE_FLOAT:
+				attr_size = sizeof(float);
+				break;
+			case MYSQL_TYPE_DOUBLE:
+				attr_size = sizeof(double);
+				break;
+			case MYSQL_TYPE_TINY:
+				attr_size = sizeof(signed char);
+				break;
+			case MYSQL_TYPE_SHORT:
+			case MYSQL_TYPE_YEAR:
+				attr_size = sizeof(short int);
+				break;
+			case MYSQL_TYPE_LONG:
+			case MYSQL_TYPE_INT24:
+				attr_size = sizeof(int);
+				break;
+			case MYSQL_TYPE_LONGLONG:
+				attr_size = sizeof(int);
+				break;
+			default:
+				attr_size = fields[i].max_length;
+				break;
 			}
 			
 			// Setup the binding for the current parameter
@@ -203,22 +191,19 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 			rs_bind[i].buffer = malloc(attr_size + 1);
 			rs_bind[i].buffer_length = attr_size + 1;
 
-			if(rs_bind[i].buffer == NULL) 
-			{
+			if(rs_bind[i].buffer == NULL) {
 				print_stmt_error(stmt, "Cannot allocate output buffers");
 				return false;
 			}
 		}
 
-		if(mysql_stmt_bind_result(stmt, rs_bind)) 
-		{
+		if(mysql_stmt_bind_result(stmt, rs_bind)) {
 			print_stmt_error(stmt, "Unable to bind output parameters");
 			return false;
 		}
 
 		/* fetch and display result set rows */
-		while (true) 
-		{
+		while (true) {
 			status = mysql_stmt_fetch(stmt);
 
 			if (status == 1 || status == MYSQL_NO_DATA)
@@ -226,58 +211,55 @@ bool dump_result_set(MYSQL_STMT *stmt, char *title, int leading_zeros_bitmask)
 
 			putchar('|');
 
-			for (i = 0; i < num_fields; ++i) 
-			{
-				if (rs_bind[i].is_null_value) 
-				{
+			for (i = 0; i < num_fields; ++i) {
+				if (rs_bind[i].is_null_value) {
 					printf (" %-*s |", (int)fields[i].max_length, "NULL");
 					continue;
 				}
 
 				switch (rs_bind[i].buffer_type) {
-					
-					case MYSQL_TYPE_VAR_STRING:
-					case MYSQL_TYPE_TIMESTAMP:
-					case MYSQL_TYPE_NEWDECIMAL:
-						printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);
-						break;
-				       
-					case MYSQL_TYPE_DATE:
-						date = (MYSQL_TIME *)rs_bind[i].buffer;
-						printf(" %d-%02d-%02d |", date->year, date->month, date->day);
-						break;
-				       
-					case MYSQL_TYPE_STRING:
-						printf(" %-*s |", (int)fields[i].max_length, (char *)rs_bind[i].buffer);
-						break;
-		 
-					case MYSQL_TYPE_FLOAT:
-					case MYSQL_TYPE_DOUBLE:
-						printf(" %.02f |", *(float *)rs_bind[i].buffer);
-						break;
-		 
-					case MYSQL_TYPE_LONG:
-					case MYSQL_TYPE_SHORT:
-					case MYSQL_TYPE_TINY:
-						/* ad ogni iterazione verifico se l'i-esimo
-						 * bit della maschera e' settato ad uno.
-						 * In tal caso la stampa prevede un padding di 0
-						 * iniziali altrimenti una semplice spaziatura
-						 * come tutte le altre colonne
-						 */
-						if ((leading_zeros_bitmask & (1 << i)) == (1 << i))
-							printf(" %0*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
-						else
-							printf(" %-*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
-						break;
-					
-					case MYSQL_TYPE_LONGLONG:
-						printf(" %-*lld |", (int)fields[i].max_length, *(long long int *)rs_bind[i].buffer);
-						break;
+				case MYSQL_TYPE_VAR_STRING:
+				case MYSQL_TYPE_TIMESTAMP:
+				case MYSQL_TYPE_NEWDECIMAL:
+					printf(" %-*s |", (int)fields[i].max_length, (char*)rs_bind[i].buffer);
+					break;
+				
+				case MYSQL_TYPE_DATE:
+					date = (MYSQL_TIME *)rs_bind[i].buffer;
+					printf(" %d-%02d-%02d |", date->year, date->month, date->day);
+					break;
+				
+				case MYSQL_TYPE_STRING:
+					printf(" %-*s |", (int)fields[i].max_length, (char *)rs_bind[i].buffer);
+					break;
+		
+				case MYSQL_TYPE_FLOAT:
+				case MYSQL_TYPE_DOUBLE:
+					printf(" %.02f |", *(float *)rs_bind[i].buffer);
+					break;
+		
+				case MYSQL_TYPE_LONG:
+				case MYSQL_TYPE_SHORT:
+				case MYSQL_TYPE_TINY:
+					/* ad ogni iterazione verifico se l'i-esimo
+						* bit della maschera e' settato ad uno.
+						* In tal caso la stampa prevede un padding di 0
+						* iniziali altrimenti una semplice spaziatura
+						* come tutte le altre colonne
+						*/
+					if ((leading_zeros_bitmask & (1 << i)) == (1 << i))
+						printf(" %0*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
+					else
+						printf(" %-*d |", (int)fields[i].max_length, *(int *)rs_bind[i].buffer);
+					break;
+				
+				case MYSQL_TYPE_LONGLONG:
+					printf(" %-*lld |", (int)fields[i].max_length, *(long long int *)rs_bind[i].buffer);
+					break;
 
-					default:
-					    printf("ERROR: Unhandled type (%d)\n", rs_bind[i].buffer_type);
-					    abort();
+				default:
+					printf("ERROR: Unhandled type (%d)\n", rs_bind[i].buffer_type);
+					abort();
 				}
 			}
 			putchar('\n');
