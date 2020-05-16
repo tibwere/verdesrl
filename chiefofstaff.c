@@ -101,8 +101,8 @@ void run_as_chief_of_staff(char *username)
 
         strncpy(curr_user, username, BUFFSIZE_L);
 
-        if (parse_config("config/cpp.user", &cnf, "=")) {
-                fprintf(stderr, "Invalid configuration file selected (CPP)\n");
+        if (parse_config("config/cos.user", &cnf, "=")) {
+                fprintf(stderr, "Invalid configuration file selected (COS)\n");
                 exit(EXIT_FAILURE);
         }
 

@@ -6,7 +6,15 @@
 #include "defines.h"
 
 
-enum role { CLP, CLR, ADM, OPP, MNG, CPP, ERR };
+enum role { 
+        PCS,    // Customer (private) 
+        RCS,    // Customer (retailer) 
+        WHC,    // Warehouse clerk 
+        OPC,    // Order processor 
+        MNG,    // Manager
+        COS,    // Chief of staff    
+        ERR     // ERROR
+};
 
 struct credentials {
 	char username[BUFFSIZE_L];
@@ -14,7 +22,7 @@ struct credentials {
 };
 
 struct customer_signup_params {
-        struct credentials creds;
+        struct credentials *creds;
         char code[BUFFSIZE_XS];
         char name[BUFFSIZE_S];
         char residential_address[BUFFSIZE_M];
@@ -23,14 +31,6 @@ struct customer_signup_params {
         char referent_last_name[BUFFSIZE_S];
 };
 
-/*
-static enum role attempt_login(struct credentials *cred, char *identifier); 
-static bool attempt_signup(struct customer_signup_params *cst, bool is_private);
-static bool login_manager(void);
-static bool signup_manager(void);
-static char *strupper(char *str);
-static bool attempt_change_password(char *username, char *old_passwd, char *new_passwd);
-*/
 
 MYSQL *conn;
 
@@ -107,12 +107,12 @@ static bool attempt_signup(struct customer_signup_params *cst, bool is_private)
         }
 
         param[4].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_user VARCHAR(128)
-        param[4].buffer = (cst->creds).username;
-        param[4].buffer_length = strlen((cst->creds).username);
+        param[4].buffer = (cst->creds)->username;
+        param[4].buffer_length = strlen((cst->creds)->username);
 
         param[5].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_pass VARCHAR(128)
-        param[5].buffer = (cst->creds).password;
-        param[5].buffer_length = strlen((cst->creds).password);
+        param[5].buffer = (cst->creds)->password;
+        param[5].buffer_length = strlen((cst->creds)->password);
 
         if (!is_private) {
                 param[6].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome_ref VARCHAR(32)
@@ -181,12 +181,12 @@ static bool login_manager(void)
         role = attempt_login(&cred, client_identifier);
         
         switch (role) {
-        case CLP: run_as_customer(cred.username, client_identifier, true, false); break;
-        case CLR: run_as_customer(cred.username, client_identifier, false, false); break;
+        case PCS: run_as_customer(cred.username, client_identifier, true, false); break;
+        case RCS: run_as_customer(cred.username, client_identifier, false, false); break;
         case MNG: run_as_manager(cred.username); break;
-        case CPP: run_as_chief_of_staff(cred.username); break;
-        case ADM: run_as_warehouse_clerk(cred.username); break;
-        case OPP: run_as_order_processor(cred.username); break;
+        case COS: run_as_chief_of_staff(cred.username); break;
+        case WHC: run_as_warehouse_clerk(cred.username); break;
+        case OPC: run_as_order_processor(cred.username); break;
         case ERR: printf("Login failed!\n"); break;
         default: 
                 fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
@@ -213,10 +213,12 @@ static bool signup_manager(void)
 {
         char password_check[BUFFSIZE_L];
         struct customer_signup_params cst;
+        struct credentials creds;
         char modality;
         char choice;
         
         memset(&cst, 0, sizeof(cst));
+        memset(&creds, 0, sizeof(creds));
         memset(password_check, 0, sizeof(password_check));
 
         init_screen(false);
@@ -224,16 +226,16 @@ static bool signup_manager(void)
         modality = multi_choice("Are you a [p]rivate or [r]etailer..?", "pr", 2);
 
         printf("Insert username...........................: ");
-        get_input(BUFFSIZE_L, (cst.creds).username, false, true);
+        get_input(BUFFSIZE_L, creds.username, false, true);
 
 retype_pass:
         printf("Insert password...........................: ");
-        get_input(BUFFSIZE_L, (cst.creds).password, true, true);
+        get_input(BUFFSIZE_L, creds.password, true, true);
 
         printf("Confirm password..........................: ");
         get_input(BUFFSIZE_L, password_check, true, true);
 
-        if (strcmp((cst.creds).password, password_check) != 0) {
+        if (strcmp(creds.password, password_check) != 0) {
                 printf("Mismatch password, please retry!\n");
                 goto retype_pass;
         }
@@ -263,13 +265,15 @@ retype_pass:
                 get_input(BUFFSIZE_S, cst.referent_last_name, false, true);		
         }
 
+        cst.creds = &creds;
+
         if (!attempt_signup(&cst, (modality == 'p'))) {
                 printf("Signup failed!\n");
                 choice = multi_choice("Do you wanna quit?", "yn", 2);
                 return (choice == 'y');
         }
 
-        run_as_customer((cst.creds).username, strupper(cst.code), (modality == 'p'), true); 
+        run_as_customer(creds.username, strupper(cst.code), (modality == 'p'), true); 
         return true;
 }
 

@@ -1033,10 +1033,10 @@ void run_as_customer(char *username, char *customer_code, bool is_private, bool 
         memcpy(curr_customer.username, username, BUFFSIZE_L);
         curr_customer.is_private = is_private;
 
-        snprintf(path, BUFFSIZE_M, "config/%s.user", (is_private) ? "clp" : "clr");
+        snprintf(path, BUFFSIZE_M, "config/%s.user", (is_private) ? "pcs" : "rcs");
 
         if (parse_config(path, &cnf, "=")) {
-                fprintf(stderr, "Invalid configuration file selected (%s)\n", (is_private) ? "CLP" : "CLR");
+                fprintf(stderr, "Invalid configuration file selected (%s)\n", (is_private) ? "PCS" : "RCS");
                 exit(EXIT_FAILURE);
         }
 
