@@ -245,7 +245,7 @@ void run_as_order_processor(char *username)
 
         strncpy(curr_user, username, BUFFSIZE_L);
 
-        if (parse_config("config/opp.user", &cnf, "=")) {
+        if (parse_config("config/opc.user", &cnf, "=")) {
                 fprintf(stderr, "Invalid configuration file selected (OPP)\n");
                 exit(EXIT_FAILURE);
         }

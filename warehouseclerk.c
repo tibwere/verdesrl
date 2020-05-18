@@ -548,7 +548,7 @@ void run_as_warehouse_clerk(char *username)
 
         strncpy(curr_user, username, BUFFSIZE_L);
 
-        if (parse_config("config/adm.user", &cnf, "=")) {
+        if (parse_config("config/whc.user", &cnf, "=")) {
                 fprintf(stderr, "Invalid configuration file selected (ADM)\n");
                 exit(EXIT_FAILURE);
         }
