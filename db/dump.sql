@@ -1089,13 +1089,6 @@ BEGIN
         END IF;
     END;    
 
-	-- Il livello di isolamento scelto e' SERIALIZABLE per via dell'utilizzo 
-    -- della select max per ottenere l'id autogereato. 
-    -- Non e' stato possibile utilizzare la funzione LAST_INSERT_ID() poiche' dalla 
-    -- documentazione si evince che "The ID that was generated is maintained in the server 
-    -- on a per-connection basis".
-    -- Per cui dato che la connessione e' la medesima per ciascun utente afferente ad una 
-    -- certa classe si e' preferita questa scelta alternativa.
     SET TRANSACTION ISOLATION LEVEL SERIALIZABLE; 
     START TRANSACTION;
 
@@ -1145,13 +1138,8 @@ BEGIN
         RESIGNAL;  
     END;
     
-	-- l'handler e' necessario per evitare il warning 
-    -- 1329: No data - zero rows fetched, selected, or processed
     DECLARE CONTINUE HANDLER FOR NOT FOUND SIGNAL SQLSTATE '45014' SET MESSAGE_TEXT = "Species does not exists";
 
-	-- Il livello scelto in questa transazione e' READ COMMITTED
-    -- poiche' l'unica necessita' e' quella di leggere l'ultimo prezzo
-    -- adottato in maniera consistente
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
     START TRANSACTION;
     
@@ -1162,8 +1150,7 @@ BEGIN
 		INTO	var_prezzo_attuale;
         
         IF var_prezzo_attuale <> var_prezzo THEN
-			-- fattorizzo l'impostazione della data per non aver nessuna differenza
-			-- fra quella di terminazione e quella di adozione
+
 			SET var_nuova_data = NOW();
 			
 			UPDATE	prezzi
@@ -1656,13 +1643,6 @@ BEGIN
         END IF;
     END;
 
-	-- Il livello di isolamento scelto e' SERIALIZABLE per via dell'utilizzo 
-    -- della select max per ottenere l'id autogereato. 
-    -- Non e' stato possibile utilizzare la funzione LAST_INSERT_ID() poiche' dalla 
-    -- documentazione si evince che "The ID that was generated is maintained in the server 
-    -- on a per-connection basis".
-    -- Per cui dato che la connessione e' la medesima per ciascun utente afferente ad una 
-    -- certa classe si e' preferita questa scelta alternativa.
 	SET TRANSACTION ISOLATION LEVEL SERIALIZABLE; 
     START TRANSACTION;
 		INSERT INTO fornitori (`codice_fiscale`, `nome`) VALUES (var_codice_fiscale, var_nome);
@@ -1740,13 +1720,6 @@ BEGIN
         RESIGNAL;  
     END;
     
-    
-	-- Il livello di isolamento scelto e' REPEATABLE READ affinche'
-    -- i dati presentati nel report siano affidabili.
-    -- Non e' necessario evitare eventuali inserimenti fantasma in questo caso. 
-    -- Si tratterebbe infatti dell'inserimento di nuove specie e si puo' supporre 
-    -- che appena inserite non richiedano sin da subito un rifornimento).
-    SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
 	START TRANSACTION;
     
         OPEN cur;
@@ -1777,41 +1750,6 @@ BEGIN
 		CLOSE cur;
         
     COMMIT;
-END$$
-
-DELIMITER ;
-
--- -----------------------------------------------------
--- procedure visualizza_dettagli_giacenza
--- -----------------------------------------------------
-
-USE `verdesrl`;
-DROP procedure IF EXISTS `verdesrl`.`visualizza_dettagli_giacenza`;
-
-DELIMITER $$
-USE `verdesrl`$$
-CREATE PROCEDURE `visualizza_dettagli_giacenza` (IN var_specie INT)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;  
-        RESIGNAL;  
-    END;
-    
-	-- Il livello di isolamento scelto e' READ COMMITED perche'
-    -- l'unico interesse in questa situazione e' quello di evitare
-    -- dirty reads (non si effettuano letture ulteriori ne' vengono
-    -- riutilizzati i dati letti).
-	SET TRANSACTION ISOLATION LEVEL READ COMMITTED; 
-    START TRANSACTION;
-    
-		SELECT	codice										AS	`Species_code`,
-				CONCAT(nome_comune, " (", nome_latino, ")")	AS	`Species_name`,
-				giacenza									AS	`Stock`
-		FROM	specie_di_piante
-		WHERE	codice = var_specie;
-        
-	COMMIT;
 END$$
 
 DELIMITER ;
@@ -2039,10 +1977,6 @@ BEGIN
         RESIGNAL;  
     END;
     
-	-- Il livello di isolamento scelto e' READ COMMITED perche'
-    -- l'unico interesse in questa situazione e' quello di evitare
-    -- dirty reads (non si effettuano letture ulteriori ne' vengono
-    -- riutilizzati i dati letti).
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED; 
     START TRANSACTION;
     
@@ -2281,29 +2215,25 @@ BEGIN
         RESIGNAL;  
     END;
     
-	-- Il livello di isolamento scelto e' SERIALIZABLE al
-    -- fine di presentare uno snapshot affidabile dell'ordine
-    -- selezionato (nessun pacco può essere inserito in concorrenza).
 	SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
     START TRANSACTION;
-    
-		SELECT		`ordini`.`id`														AS	`Order_ID`,											
-					DATE(`ordini`.`data`)												AS	`Date`,
-					`ordini`.`indirizzo_spedizione`										AS	`Shipping_address`,
-					`ordini`.`contatto`													AS	`Chosen_contact`,
-					CASE
-						WHEN verifica_completamento(`id`) 	THEN "Completed"
-						WHEN aperto_or_finalizzato = 1 		THEN "Already open"
-						ELSE "Not yet completed"
-					END 																AS `Status`,
-                    CASE 
-						WHEN `clienti`.`privato_or_rivendita` = 1 THEN "Not expected"
-                        ELSE concat(`referenti`.`nome`, " ", `referenti`.`cognome`)
-					END 																AS `Referent`
-		FROM		`ordini` 	INNER JOIN 	`clienti`	ON `ordini`.`cliente` = `clienti`.`codice`
-                                LEFT JOIN	`referenti`	ON `clienti`.`codice` = `referenti`.`rivendita`	
-		WHERE		`id` = var_ordine;
-    
+		
+		SELECT	`ordini`.`id`														AS	`Order_ID`,											
+				DATE(`ordini`.`data`)												AS	`Date`,
+				`ordini`.`indirizzo_spedizione`										AS	`Shipping_address`,
+				`ordini`.`contatto`													AS	`Chosen_contact`,
+				CASE
+					WHEN verifica_completamento(`id`) 	THEN "Completed"
+					WHEN aperto_or_finalizzato = 1 		THEN "Already open"
+					ELSE "Not yet completed"
+				END 																AS `Status`,
+				CASE 
+				WHEN `clienti`.`privato_or_rivendita` = 1 THEN "Not expected"
+					ELSE concat(`referenti`.`nome`, " ", `referenti`.`cognome`)
+				END 																AS `Referent`
+		FROM	`ordini` 	INNER JOIN 	`clienti`	ON `ordini`.`cliente` = `clienti`.`codice`
+							LEFT JOIN	`referenti`	ON `clienti`.`codice` = `referenti`.`rivendita`	
+		WHERE	`id` = var_ordine;
     
 	COMMIT;
 END$$
@@ -2544,7 +2474,6 @@ GRANT EXECUTE ON procedure `verdesrl`.`inserisci_richiesta_fornitura` TO 'addett
 GRANT EXECUTE ON procedure `verdesrl`.`inserisci_fornitore` TO 'addetto_diparimento_magazzino';
 GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_disponibilita_fornitura` TO 'addetto_diparimento_magazzino';
 GRANT EXECUTE ON procedure `verdesrl`.`report_giacenza` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_giacenza` TO 'addetto_diparimento_magazzino';
 GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'addetto_diparimento_magazzino';
 GRANT EXECUTE ON procedure `verdesrl`.`visualizza_fornitori` TO 'addetto_diparimento_magazzino';
 GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_disponibili` TO 'addetto_diparimento_magazzino';
@@ -2624,16 +2553,6 @@ BEGIN
 	IF NEW.esotica_si_no <> 1  AND NEW.esotica_si_no <> 0 THEN
 		SIGNAL SQLSTATE '45022' SET MESSAGE_TEXT = "Types of species allowed: 1 -> Exotic ~ 0 -> Not exotic";
     END IF;	    
-END$$
-
-
-USE `verdesrl`$$
-DROP TRIGGER IF EXISTS `verdesrl`.`specie_di_piante_BEFORE_INSERT_1` $$
-USE `verdesrl`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `verdesrl`.`specie_di_piante_BEFORE_INSERT_1` BEFORE INSERT ON `specie_di_piante` FOR EACH ROW
-BEGIN
-	SET NEW.nome_comune = CONCAT(UPPER(LEFT(NEW.nome_comune, 1)), LOWER(SUBSTRING(NEW.nome_comune, 2, LENGTH(NEW.nome_comune))));
- 	SET NEW.nome_latino = CONCAT(UPPER(LEFT(NEW.nome_latino, 1)), LOWER(SUBSTRING(NEW.nome_latino, 2, LENGTH(NEW.nome_latino))));
 END$$
 
 
@@ -3017,15 +2936,15 @@ DO BEGIN
     DECLARE var_data_agg DATETIME;
 	DECLARE done INT DEFAULT FALSE;
     DECLARE cur CURSOR FOR 
-		SELECT		specie_richiesta, quantita
-        FROM 		richieste_di_fornitura
-        WHERE		pendente_si_no = 1;
+		SELECT		`specie_richiesta`, `quantita`
+        FROM 		`richieste_di_forniture`
+        WHERE		`pendente_si_no` = 1;
 	DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
 	DROP TEMPORARY TABLE IF EXISTS da_aggiornare;
     CREATE TEMPORARY TABLE da_aggiornare (
-		specie_di_pianta	INT,
-        quantita_richiesta	INT UNSIGNED
+		`specie_di_pianta`	INT,
+        `quantita_richiesta`	INT UNSIGNED
     );
     
     SET var_data_agg = now();
@@ -3037,14 +2956,14 @@ DO BEGIN
 			LEAVE read_loop;
 		END IF;
 		
-		UPDATE	specie_di_piante
-        SET 	giacenza = giacenza + var_quantita_c
-        WHERE	codice = var_specie_c;
+		UPDATE	`specie_di_piante`
+        SET 	`giacenza` = `giacenza` + var_quantita_c
+        WHERE	`codice` = var_specie_c;
 	END LOOP;
 	CLOSE cur;
     DROP TEMPORARY TABLE da_aggiornare;  
     
-    UPDATE	`richieste_di_fornitura`
+    UPDATE	`richieste_di_forniture`
     SET		`pendente_si_no` = 0
     WHERE	`data` <= var_data_agg;
     
