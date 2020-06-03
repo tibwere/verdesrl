@@ -6,10 +6,10 @@
 
 /* dimensione effettiva +1 (per '\0') */
 #define BUFFSIZE_XS 17 
-#define BUFFSIZE_S	33
-#define BUFFSIZE_M	65
-#define BUFFSIZE_L	129
-#define BUFFSIZE_XL	257
+#define BUFFSIZE_S  33
+#define BUFFSIZE_M  65
+#define BUFFSIZE_L  129
+#define BUFFSIZE_XL 257
 
 /* bitmask */
 #define LEADING_ZERO_BITMASK_IDX_0 1 
