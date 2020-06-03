@@ -72,8 +72,8 @@ retype_pass:
     choice = multi_choice("Pick an option", "123", 3);
 
     switch (choice) {
-    case '1': snprintf(role, 4, "ADM"); break;
-    case '2': snprintf(role, 4, "OPP"); break;
+    case '1': snprintf(role, 4, "WHC"); break;
+    case '2': snprintf(role, 4, "OPC"); break;
     case '3': snprintf(role, 4, "MNG"); break;
     default:
         fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
