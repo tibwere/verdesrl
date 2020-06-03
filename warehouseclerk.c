@@ -31,7 +31,6 @@ static bool attempt_search_suppliers(char *name)
 	memset(param, 0, sizeof(param));
    	memset(prompt, 0, sizeof(prompt));
 
-
 	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_nome VARCHAR(32)
 	param[0].buffer = name;
 	param[0].buffer_length = strlen(name);
@@ -137,8 +136,7 @@ static void insert_new_supplier(void)
         printf("Insert first name................................................: ");
         get_input(BUFFSIZE_S, params.name, false, true);
 
-        if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
-        {
+        if (ask_for_tips("Do you wanna search species by name to find the right code", 0)) {
                 printf("\nInsert the name to filter on (default all).......................: ");   
                 get_input(BUFFSIZE_M, spec_name, false, false);
                 if (!attempt_search_species(false, spec_name))
