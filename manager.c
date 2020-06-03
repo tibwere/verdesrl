@@ -647,8 +647,7 @@ void run_as_manager(char *username)
 
         choice = multi_choice("Pick an option", "123456pq", 8);
 
-        switch (choice)
-        {
+        switch (choice) {
         case '1': insert_a_species(); break;
         case '2': remove_a_species(); break;
         case '3': add_coloring(); break;
