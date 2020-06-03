@@ -27,10 +27,8 @@ static bool attempt_search_species_belonging_to_order(unsigned int order_id)
 	param[0].buffer = &order_id;
 	param[0].buffer_length = sizeof(order_id);
 
-        if(!exec_sp(&stmt, param, "call visualizza_piante_rimanenti_da_impacchettare(?)")) {
-		print_stmt_error(stmt, "Unable to initialize the statement\n");
+        if(!exec_sp(&stmt, param, "call visualizza_piante_rimanenti_da_impacchettare(?)")) 
                 return false;
-	}
 
         if (!dump_result_set(stmt, "Species belonging to selected order:", LEADING_ZERO_BITMASK_IDX_0)) {
                 CLOSE_AND_RETURN(false, stmt);
