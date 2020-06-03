@@ -5,8 +5,7 @@
 #include <mysql.h>
 #include "defines.h"
 
-struct create_pack_sp_param
-{
+struct create_pack_sp_param {
         unsigned int order_id;
         unsigned int pack_number;
         unsigned int species_code;

@@ -7,8 +7,7 @@
 #include <time.h>
 #include "defines.h"
 
-struct insert_species_sp_params 
-{
+struct insert_species_sp_params {
         char common_name[BUFFSIZE_M];
         char latin_name[BUFFSIZE_M];
         signed char in_or_out;

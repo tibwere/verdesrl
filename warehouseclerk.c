@@ -5,16 +5,14 @@
 #include <mysql.h>
 #include "defines.h"
 
-struct insert_supplier_sp_params 
-{
+struct insert_supplier_sp_params {
         char fiscal_code[BUFFSIZE_XS];
         char name[BUFFSIZE_S];
         unsigned int species_code;
         char address[BUFFSIZE_M];
 };
 
-struct spec_info
-{
+struct spec_info {
         unsigned int species_code;
         char species_name[132]; // |NOME COMUNE| + |NOME LATINO| + 3 + 1
         unsigned int stock;
