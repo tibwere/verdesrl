@@ -594,8 +594,7 @@ static void report_species(void)
 
         printf("*** View sales trend for a chosen species ***\n");
 
-        if (ask_for_tips("Do you wanna search species by name to find the right code", 0))
-        {
+        if (ask_for_tips("Do you wanna search species by name to find the right code", 0)) {
                 printf("\nInsert the name to filter on (default all).......................: ");   
                 get_input(BUFFSIZE_M, spec_name, false, false);
                 

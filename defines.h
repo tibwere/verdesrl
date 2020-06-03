@@ -11,7 +11,7 @@
 #define BUFFSIZE_L	129
 #define BUFFSIZE_XL	257
 
-/* bitmask: 00000001 (prima colonna dell'output) */
+/* bitmask */
 #define LEADING_ZERO_BITMASK_IDX_0 1 
 #define LEADING_ZERO_BITMASK_IDX_1 2 
 #define LEADING_ZERO_BITMASK_IDX_2 4 
