@@ -17,7 +17,7 @@
 #define LEADING_ZERO_BITMASK_IDX_2 4 
 
 #define CLOSE_AND_RETURN(retval, obj) \
-	mysql_stmt_close(obj); \
+    mysql_stmt_close(obj); \
 	return (retval);
 
 
@@ -25,11 +25,11 @@ extern MYSQL *conn;
 
 
 struct configuration {
-	char host[BUFFSIZE_L];
-	char username[BUFFSIZE_L];
-	char password[BUFFSIZE_L];
-	unsigned int port;
-	char database[BUFFSIZE_L];
+    char host[BUFFSIZE_L];
+    char username[BUFFSIZE_L];
+    char password[BUFFSIZE_L];
+    unsigned int port;
+    char database[BUFFSIZE_L];
 };
 
 
