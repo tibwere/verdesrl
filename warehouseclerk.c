@@ -329,66 +329,6 @@ static void add_supply_request(void)
     getchar();
 }
 
-static bool attempt_show_stock_status(unsigned int species_code)
-{
-    MYSQL_STMT *stmt;	
-    MYSQL_BIND param[1];
-
-    memset(param, 0, sizeof(param));
-
-    param[0].buffer_type = MYSQL_TYPE_LONG; // IN var_specie INT
-    param[0].buffer = &species_code;
-    param[0].buffer_length = sizeof(species_code);
-
-    if(!exec_sp(&stmt, param, "call visualizza_dettagli_giacenza(?)")) 
-        return false;
-
-    if (!dump_result_set(stmt, "\nResults for selected species:", LEADING_ZERO_BITMASK_IDX_0)) {
-        CLOSE_AND_RETURN(false, stmt);
-    }
-    
-    mysql_stmt_close(stmt);
-    return true;   
-}
-
-static void show_stock_status(void)
-{
-    char buffer_for_integer[BUFFSIZE_XS];
-    char spec_name[BUFFSIZE_M];
-    unsigned int spec_code;
-
-    memset(buffer_for_integer, 0, sizeof(buffer_for_integer));
-    memset(spec_name, 0, sizeof(spec_name));
-
-    init_screen(false);
-
-    printf("*** Show stock status for a species ***\n");  
-
-    if (ask_for_tips("Do you wanna search species by name to find the right code", 0)) {
-        printf("\nInsert the name to filter on (default all).......................: ");   
-        get_input(BUFFSIZE_M, spec_name, false, false);
-            
-        if (!attempt_search_species(false, spec_name))
-            printf("Operation failed\n");
-        
-        putchar('\n');        
-    }
-
-    printf("Insert species code..............................................: ");
-    get_input(BUFFSIZE_XS, buffer_for_integer, false, true);
-    spec_code = strtol(buffer_for_integer, NULL, 10);
-
-    putchar('\n');
-
-    if (!attempt_show_stock_status(spec_code))
-        printf("Operation failed\n");
-        
-    putchar('\n');
-
-    printf("Press enter key to get back to menu ...\n");
-    getchar();
-}
-
 static bool attempt_report_stock(unsigned int range)
 {
     MYSQL_STMT *stmt;	
@@ -559,12 +499,11 @@ void run_as_warehouse_clerk(char *username)
         printf("2) Add address for a supplier\n");
         printf("3) Add supply availability\n");
         printf("4) Add supply request\n");
-        printf("5) View stock status for a species\n");
-        printf("6) View details of the species to be supplied\n");
+        printf("5) View details of the species to be supplied\n");
         printf("p) Change password\n");
         printf("q) Quit\n");
 
-        choice = multi_choice("Pick an option", "123456pq", 8);
+        choice = multi_choice("Pick an option", "12345pq", 8);
 
         switch (choice)
         {
@@ -572,8 +511,7 @@ void run_as_warehouse_clerk(char *username)
         case '2': add_address(); break;
         case '3': add_supply_availability(); break;
         case '4': add_supply_request(); break;
-        case '5': show_stock_status(); break;
-        case '6': report_stock(); break;
+        case '5': report_stock(); break;
         case 'p': change_password(curr_user); break;
         case 'q': printf("Bye bye!\n\n\n"); return;
         default:
