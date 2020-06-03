@@ -56,8 +56,8 @@ static bool attempt_show_status(unsigned int order_id)
         CLOSE_AND_RETURN(false, stmt);
     }
     
-	mysql_stmt_close(stmt);
-	return true;
+    mysql_stmt_close(stmt);
+    return true;
 }
 
 static bool attempt_exec_op_on_pack(struct create_pack_sp_param *args, bool is_create)
