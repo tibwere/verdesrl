@@ -653,16 +653,16 @@ static void modify_contact_list(bool is_customer, bool to_delete)
     init_screen(false);
 
     if (to_delete)
-        printf("*** Remove a contact from your %s list ***\n", (is_customer) ? "" : "referent");
+        printf("*** Remove a contact from your %slist ***\n", (is_customer) ? "" : "referent");
     else
-        printf("*** Change %s favourite contact %s ***\n", (is_customer) ? "your" : "", (is_customer) ? "" : "of your referent");
+        printf("*** Change %s favourite contact %s***\n", (is_customer) ? "your" : "", (is_customer) ? "" : "of your referent");
 
     printf("%s code....................................%s: %s\n", 
            (is_customer) ? "Customer" : "Referent", 
            (is_customer) ? "": ".........",
            curr_customer.code);    
 
-    snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %s contacts", 
+    snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %scontacts", 
              (is_customer) ? "" : "referent");
 
     if (ask_for_tips(message, 0)) {
