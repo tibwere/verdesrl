@@ -50,19 +50,19 @@ static void add_employee_account(void)
     init_screen(false);
 
     printf("Insert username: ");
-	get_input(BUFFSIZE_L, username, false, true);
+    get_input(BUFFSIZE_L, username, false, true);
 
 retype_pass:
-	printf("Insert password: ");
-	get_input(BUFFSIZE_L, password, true, true);
+    printf("Insert password: ");
+    get_input(BUFFSIZE_L, password, true, true);
 
-	printf("Retype password: ");
-	get_input(BUFFSIZE_L, password_check, true, true);
+    printf("Retype password: ");
+    get_input(BUFFSIZE_L, password_check, true, true);
 
-	if (strcmp(password, password_check) != 0) {
-		printf("Mismatch password, please retry!\n");
-		goto retype_pass;
-	}
+    if (strcmp(password, password_check) != 0) {
+        printf("Mismatch password, please retry!\n");
+        goto retype_pass;
+    }
 
     printf("\nWhat will be her/his role in the company?\n");
     printf("1) Warehouse clerk\n");
@@ -86,7 +86,7 @@ retype_pass:
         printf("Employee account for %s [%s] was succesfylly created\n", username, role);
     else
         printf("Operation failed\n");
-            
+
     printf("Press enter key to get back to menu ...\n");
     getchar();
 }
@@ -121,14 +121,13 @@ void run_as_chief_of_staff(char *username)
 
         choice = multi_choice("Pick an option", "apq", 3);
 
-        switch (choice)
-        {
-        case 'a': add_employee_account(); break;
-        case 'p': change_password(curr_user); break;
-        case 'q': printf("Bye bye!\n\n\n"); return;
-        default:
-            fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
-            abort();
+        switch (choice) {
+            case 'a': add_employee_account(); break;
+            case 'p': change_password(curr_user); break;
+            case 'q': printf("Bye bye!\n\n\n"); return;
+            default:
+                fprintf(stderr, "Invalid condition at %s:%d\n", __FILE__, __LINE__);
+                abort();
         }
     }
 }
