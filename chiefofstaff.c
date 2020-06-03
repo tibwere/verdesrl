@@ -12,27 +12,27 @@ static char curr_user[BUFFSIZE_L];
 static bool attempt_add_employee_account(char *username, char *password, char *role)
 {
     MYSQL_STMT *stmt;	
-	MYSQL_BIND param[3];
+    MYSQL_BIND param[3];
 
-	memset(param, 0, sizeof(param));
-	
-	param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
-	param[0].buffer = username;
-	param[0].buffer_length = strlen(username);
+    memset(param, 0, sizeof(param));
 
-	param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
-	param[1].buffer = password;
-	param[1].buffer_length = strlen(password);
+    param[0].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
+    param[0].buffer = username;
+    param[0].buffer_length = strlen(username);
 
-	param[2].buffer_type = MYSQL_TYPE_STRING; // IN var_username VARCHAR(128)
-	param[2].buffer = role;
-	param[2].buffer_length = strlen(role);
+    param[1].buffer_type = MYSQL_TYPE_VAR_STRING; // IN var_username VARCHAR(128)
+    param[1].buffer = password;
+    param[1].buffer_length = strlen(password);
+
+    param[2].buffer_type = MYSQL_TYPE_STRING; // IN var_username VARCHAR(128)
+    param[2].buffer = role;
+    param[2].buffer_length = strlen(role);
 
     if (!exec_sp(&stmt, param, "call crea_utenza_dipendente(?, ?, ?)"))
         return false;
 
-	mysql_stmt_close(stmt);
-	return true;    
+    mysql_stmt_close(stmt);
+    return true;    
 }
 
 static void add_employee_account(void)
