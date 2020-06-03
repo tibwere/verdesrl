@@ -655,7 +655,7 @@ static void modify_contact_list(bool is_customer, bool to_delete)
     if (to_delete)
         printf("*** Remove a contact from your %slist ***\n", (is_customer) ? "" : "referent");
     else
-        printf("*** Change %s favourite contact %s***\n", (is_customer) ? "your" : "", (is_customer) ? "" : "of your referent");
+        printf("*** Change %sfavourite contact %s***\n", (is_customer) ? "your" : "", (is_customer) ? "" : "of your referent ");
 
     printf("%s code....................................%s: %s\n", 
            (is_customer) ? "Customer" : "Referent", 
@@ -663,7 +663,7 @@ static void modify_contact_list(bool is_customer, bool to_delete)
            curr_customer.code);    
 
     snprintf(message, BUFFSIZE_L, "Do you wanna see a report of your %scontacts", 
-             (is_customer) ? "" : "referent");
+             (is_customer) ? "" : "referent ");
 
     if (ask_for_tips(message, 0)) {
         if (!attempt_show_contact_list(is_customer))
