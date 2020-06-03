@@ -6,8 +6,8 @@
 #include "defines.h"
 
 struct insert_supplier_sp_params {
-        char fiscal_code[BUFFSIZE_XS];
-        char name[BUFFSIZE_S];
+    char fiscal_code[BUFFSIZE_XS];
+    char name[BUFFSIZE_S];
         unsigned int species_code;
         char address[BUFFSIZE_M];
 };
@@ -53,7 +53,7 @@ static bool attempt_search_suppliers(char *name)
 
 static bool attempt_select_available_species(unsigned int sup_code)
 {
-	MYSQL_STMT *stmt;	
+	MYSQL_STMT *stmt;
 	MYSQL_BIND param[1];
 
 	memset(param, 0, sizeof(param));
