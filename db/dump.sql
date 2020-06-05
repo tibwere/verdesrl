@@ -2410,120 +2410,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-SET SQL_MODE = '';
-DROP USER IF EXISTS non_registrato;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'non_registrato' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`login` TO 'non_registrato';
-GRANT EXECUTE ON procedure `verdesrl`.`registra_privato` TO 'non_registrato';
-GRANT EXECUTE ON procedure `verdesrl`.`registra_rivendita` TO 'non_registrato';
-SET SQL_MODE = '';
-DROP USER IF EXISTS cliente_privato;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'cliente_privato' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`crea_ordine` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_specie_da_ordine` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_ordine` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_specie_ad_ordine_esistente` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`finalizza_ordine` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`report_ordine` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_residenza` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_fatturazione` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_contatto_cliente` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_contatto_cliente` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_contatto_preferito_cliente` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_ordini_cliente` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_contatti_cliente` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'cliente_privato';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_appartenenti_ad_ordine` TO 'cliente_privato';
-SET SQL_MODE = '';
-DROP USER IF EXISTS cliente_rivendita;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'cliente_rivendita' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`crea_ordine` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_specie_da_ordine` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_ordine` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_specie_ad_ordine_esistente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`finalizza_ordine` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`report_ordine` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_residenza` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_fatturazione` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_contatto_cliente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_contatto_cliente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_contatto_preferito_cliente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_contatto_referente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_contatto_referente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_contatto_preferito_referente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_ordini_cliente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_contatti_cliente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_contatti_referente` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'cliente_rivendita';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_appartenenti_ad_ordine` TO 'cliente_rivendita';
-SET SQL_MODE = '';
-DROP USER IF EXISTS addetto_diparimento_magazzino;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'addetto_diparimento_magazzino' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`inserisci_richiesta_fornitura` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`inserisci_fornitore` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_disponibilita_fornitura` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`report_giacenza` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_fornitori` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_disponibili` TO 'addetto_diparimento_magazzino';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_indirizzo_fornitore` TO 'addetto_diparimento_magazzino';
-SET SQL_MODE = '';
-DROP USER IF EXISTS operatore_pacchi;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'operatore_pacchi' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'operatore_pacchi';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_specie_a_pacco` TO 'operatore_pacchi';
-GRANT EXECUTE ON procedure `verdesrl`.`report_pacchi` TO 'operatore_pacchi';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_stato_ordine` TO 'operatore_pacchi';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_piante_rimanenti_da_impacchettare` TO 'operatore_pacchi';
-GRANT EXECUTE ON procedure `verdesrl`.`crea_pacco` TO 'operatore_pacchi';
-SET SQL_MODE = '';
-DROP USER IF EXISTS manager;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'manager' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_prezzo` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`inserisci_nuova_specie` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_specie_di_pianta` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_colorazione` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_colorazione` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`report_specie` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_colorazioni` TO 'manager';
-GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'manager';
-SET SQL_MODE = '';
-DROP USER IF EXISTS capo_personale;
-SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-CREATE USER 'capo_personale' IDENTIFIED BY 'verdesrl';
-
-GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'capo_personale';
-GRANT EXECUTE ON procedure `verdesrl`.`crea_utenza_dipendente` TO 'capo_personale';
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-
--- -----------------------------------------------------
--- Data for table `verdesrl`.`utenti`
--- -----------------------------------------------------
-START TRANSACTION;
-USE `verdesrl`;
-INSERT INTO `verdesrl`.`utenti` (`username`, `password`, `ruolo`, `uuid`) VALUES ('admin', '7603e55f21a11a3c9e71a00110dd97cc1552d7954bf90685eaa91c98bbfac26e24d4e9af41a122a212ccd423a7e305820cb57c7cfaa88409c78ff832859532b3', 'COS', '058fa777-84c0-11ea-8c72-d0039b002ee5');
-
-COMMIT;
-
 USE `verdesrl`;
 
 DELIMITER $$
@@ -2881,6 +2767,120 @@ END$$
 
 
 DELIMITER ;
+SET SQL_MODE = '';
+DROP USER IF EXISTS non_registrato;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'non_registrato' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`login` TO 'non_registrato';
+GRANT EXECUTE ON procedure `verdesrl`.`registra_privato` TO 'non_registrato';
+GRANT EXECUTE ON procedure `verdesrl`.`registra_rivendita` TO 'non_registrato';
+SET SQL_MODE = '';
+DROP USER IF EXISTS cliente_privato;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'cliente_privato' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`crea_ordine` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_specie_da_ordine` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_ordine` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_specie_ad_ordine_esistente` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`finalizza_ordine` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`report_ordine` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_residenza` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_fatturazione` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_contatto_cliente` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_contatto_cliente` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_contatto_preferito_cliente` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_ordini_cliente` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_contatti_cliente` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'cliente_privato';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_appartenenti_ad_ordine` TO 'cliente_privato';
+SET SQL_MODE = '';
+DROP USER IF EXISTS cliente_rivendita;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'cliente_rivendita' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`crea_ordine` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_specie_da_ordine` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_ordine` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_specie_ad_ordine_esistente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`finalizza_ordine` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`report_ordine` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_residenza` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_fatturazione` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_contatto_cliente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_contatto_cliente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_contatto_preferito_cliente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_contatto_referente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_contatto_referente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_contatto_preferito_referente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_ordini_cliente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_contatti_cliente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_contatti_referente` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'cliente_rivendita';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_appartenenti_ad_ordine` TO 'cliente_rivendita';
+SET SQL_MODE = '';
+DROP USER IF EXISTS addetto_diparimento_magazzino;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'addetto_diparimento_magazzino' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`inserisci_richiesta_fornitura` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`inserisci_fornitore` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_disponibilita_fornitura` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`report_giacenza` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_fornitori` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_specie_disponibili` TO 'addetto_diparimento_magazzino';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_indirizzo_fornitore` TO 'addetto_diparimento_magazzino';
+SET SQL_MODE = '';
+DROP USER IF EXISTS operatore_pacchi;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'operatore_pacchi' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'operatore_pacchi';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_specie_a_pacco` TO 'operatore_pacchi';
+GRANT EXECUTE ON procedure `verdesrl`.`report_pacchi` TO 'operatore_pacchi';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_stato_ordine` TO 'operatore_pacchi';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_piante_rimanenti_da_impacchettare` TO 'operatore_pacchi';
+GRANT EXECUTE ON procedure `verdesrl`.`crea_pacco` TO 'operatore_pacchi';
+SET SQL_MODE = '';
+DROP USER IF EXISTS manager;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'manager' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_prezzo` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`inserisci_nuova_specie` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_specie_di_pianta` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`aggiungi_colorazione` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`rimuovi_colorazione` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`report_specie` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_colorazioni` TO 'manager';
+GRANT EXECUTE ON procedure `verdesrl`.`visualizza_dettagli_specie` TO 'manager';
+SET SQL_MODE = '';
+DROP USER IF EXISTS capo_personale;
+SET SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+CREATE USER 'capo_personale' IDENTIFIED BY 'verdesrl';
+
+GRANT EXECUTE ON procedure `verdesrl`.`modifica_password` TO 'capo_personale';
+GRANT EXECUTE ON procedure `verdesrl`.`crea_utenza_dipendente` TO 'capo_personale';
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
+
+-- -----------------------------------------------------
+-- Data for table `verdesrl`.`utenti`
+-- -----------------------------------------------------
+START TRANSACTION;
+USE `verdesrl`;
+INSERT INTO `verdesrl`.`utenti` (`username`, `password`, `ruolo`, `uuid`) VALUES ('admin', '7603e55f21a11a3c9e71a00110dd97cc1552d7954bf90685eaa91c98bbfac26e24d4e9af41a122a212ccd423a7e305820cb57c7cfaa88409c78ff832859532b3', 'COS', '058fa777-84c0-11ea-8c72-d0039b002ee5');
+
+COMMIT;
+
 -- begin attached script 'script'
 SET GLOBAL event_scheduler = ON;
 
