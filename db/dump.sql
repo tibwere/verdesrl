@@ -1530,7 +1530,7 @@ BEGIN
 
 	INSERT INTO colorazioni (`specie_fiorita`, `colore`) VALUES (var_specie_fiorita, var_colore);
     
-	SELECT 	colore	AS `Coloring`
+	SELECT 	UPPER(colore)	AS `Coloring`
     FROM	colorazioni
     WHERE	specie_fiorita = var_specie_fiorita;
 END$$
@@ -2054,7 +2054,7 @@ DELIMITER $$
 USE `verdesrl`$$
 CREATE PROCEDURE `visualizza_colorazioni` (IN var_specie_fiorita INT)
 BEGIN
-	SELECT	colore	AS `Coloring`
+	SELECT	UPPER(colore)	AS `Coloring`
 	FROM	colorazioni
 	WHERE	specie_fiorita = var_specie_fiorita;
 END$$
@@ -2576,15 +2576,6 @@ END$$
 
 
 USE `verdesrl`$$
-DROP TRIGGER IF EXISTS `verdesrl`.`clienti_BEFORE_INSERT_1` $$
-USE `verdesrl`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `verdesrl`.`clienti_BEFORE_INSERT_1` BEFORE INSERT ON `clienti` FOR EACH ROW
-BEGIN
-	SET NEW.nome = CONCAT(UPPER(LEFT(NEW.nome, 1)), LOWER(SUBSTRING(NEW.nome, 2, LENGTH(NEW.nome))));
-END$$
-
-
-USE `verdesrl`$$
 DROP TRIGGER IF EXISTS `verdesrl`.`clienti_BEFORE_UPDATE` $$
 USE `verdesrl`$$
 CREATE DEFINER = CURRENT_USER TRIGGER `verdesrl`.`clienti_BEFORE_UPDATE` BEFORE UPDATE ON `clienti` FOR EACH ROW
@@ -2696,15 +2687,6 @@ BEGIN
     IF var_verde_or_fiorita = 1 THEN
 		SIGNAL SQLSTATE '45019' SET MESSAGE_TEXT = "Green species cannot be colorful";
     END IF;
-END$$
-
-
-USE `verdesrl`$$
-DROP TRIGGER IF EXISTS `verdesrl`.`colorazioni_BEFORE_INSERT_1` $$
-USE `verdesrl`$$
-CREATE DEFINER = CURRENT_USER TRIGGER `verdesrl`.`colorazioni_BEFORE_INSERT_1` BEFORE INSERT ON `colorazioni` FOR EACH ROW
-BEGIN
-	SET NEW.colore = UPPER(NEW.colore);
 END$$
 
 
