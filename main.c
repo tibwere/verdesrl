@@ -262,7 +262,7 @@ retype_pass:
         printf("Insert referent first name................: ");
         get_input(BUFFSIZE_S, cst.referent_first_name, false, true);
 
-        printf("Insert referent last name:................:");
+        printf("Insert referent last name:................: ");
         get_input(BUFFSIZE_S, cst.referent_last_name, false, true);		
     }
 
