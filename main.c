@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <mysql.h>
+#include <ctype.h>
 #include "defines.h"
 
 
@@ -318,7 +319,7 @@ retype_pass:
 
 int format_prompt(char *dest, size_t length, const char *src, unsigned int dots)
 {
-    int len = snprintf(dest, length, src);
+    int len = snprintf(dest, length, "%s", src);
 
     for (unsigned int i = 0; i < dots; ++i)
         dest[len + i] = '.';

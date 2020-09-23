@@ -180,7 +180,7 @@ insert_price:
     }
 
     if (ret == -1) {
-        fprintf(stderr, strerror);
+        fprintf(stderr, "%s", strerror);
         goto exit;
     }
 
@@ -507,7 +507,7 @@ insert_price:
     }
         
     if (ret == -1) {
-        fprintf(stderr, strerror);
+        fprintf(stderr, "%s", strerror);
         goto exit;
     }    
 

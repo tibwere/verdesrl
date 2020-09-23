@@ -1,4 +1,4 @@
-host=localhost
+host=127.0.0.1
 username=addetto_diparimento_magazzino
 password=verdesrl
 port=3306

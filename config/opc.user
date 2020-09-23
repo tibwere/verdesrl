@@ -1,4 +1,4 @@
-host=localhost
+host=127.0.0.1
 username=operatore_pacchi
 password=verdesrl
 port=3306

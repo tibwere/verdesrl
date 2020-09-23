@@ -34,7 +34,7 @@ void print_stmt_error (MYSQL_STMT *stmt, char *message)
 
 bool setup_prepared_stmt(MYSQL_STMT **stmt, char *statement, MYSQL *conn)
 {
-    my_bool update_length = true;
+    bool update_length = true;
 
     *stmt = mysql_stmt_init(conn);
     if (*stmt == NULL) {

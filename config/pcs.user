@@ -1,4 +1,4 @@
-host=localhost
+host=127.0.0.1
 username=cliente_privato
 password=verdesrl
 port=3306
